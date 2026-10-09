@@ -1,163 +1,91 @@
-<p align="center">
-  <img width="500" src="./doc/preview/logo.svg">
-</p>
+# atvloadly-windows
 
+Bản build **Windows x64 native** (không cần Docker / WSL / máy ảo) của [bitxeno/atvloadly](https://github.com/bitxeno/atvloadly) — công cụ nạp và tự gia hạn (7 ngày) app IPA cho Apple TV.
 
-<div align="center">
-
-[![platform](https://img.shields.io/badge/platform-linux%20%7C%20openwrt-989898)](https://github.com/bitxeno/atvloadly/internal/releases)
-[![release](https://img.shields.io/docker/v/bitxeno/atvloadly?label=docker%20latest&sort=semver)](https://hub.docker.com/r/bitxeno/atvloadly)
-[![Docker Image Size](https://img.shields.io/docker/image-size/bitxeno/atvloadly)](https://hub.docker.com/r/bitxeno/atvloadly)
-[![Docker Pulls](https://img.shields.io/docker/pulls/bitxeno/atvloadly)](https://hub.docker.com/r/bitxeno/atvloadly)
-[![license](https://img.shields.io/github/license/bitxeno/atvloadly)](https://github.com/bitxeno/atvloadly/internal/blob/master/LICENSE)
-
-</div>
-
-<div align="center">
-
-English | [Svenska](./README_sv.md) | [中文](./README_cn.md)
-
-</div>
-
-atvloadly is a web service that supports sideloading app on Apple TV. It uses [Impactor](https://github.com/claration/Impactor) as the underlying technology for sideloading and automatically refreshes the app to ensure its long-term availability.
-
-## Features
-
-* Docker running (only supports Linux/OpenWrt platforms)
-* Supports AppleTV pairing
-* Supports automatic app refresh
-* Supports tracking GitHub releases / AltStore sources, with manual or automatic app updates
-* Supports use of multiple Apple ID accounts
-* Supports signing with your own certificate (P12 + provisioning profile), without an Apple ID
-* I18n support
-
-## Screenshots
-
-<p align="center">
-  <img width="600" src="./doc/preview/home_en.png">
-</p>
-<p align="center">
-  <img width="600" src="./doc/preview/install_en.png">
-</p>
-
-## Installation
-
-> 😔 **Only supports Linux/OpenWrt systems, does not support Mac/Windows systems.**
-
-1. The Linux/OpenWrt host needs to install `avahi-deamon`.
-   
-   **OpenWrt：**
-   ```
-   opkg install avahi-dbus-daemon
-   /etc/init.d/avahi-daemon start
-   ```
-   
-   **Ubuntu:**
-   ```
-   sudo apt-get -y install avahi-daemon
-   sudo systemctl restart avahi-daemon
-   ```
-
-2. Please refer to the following command for installation, remember to modify the mount directory.
-   
-   **Docker:**
-   ```
-   docker run --security-opt seccomp:unconfined -d --name=atvloadly --restart=always -p 5533:80 -v /path/to/mount/dir:/data -v /var/run/dbus:/var/run/dbus -v /var/run/avahi-daemon:/var/run/avahi-daemon bitxeno/atvloadly:latest
-   ```
-
-   The `/var/run/dbus` and `/var/run/avahi-daemon` of the host machine need to be shared with the docker container for use.
-
-   If you want to use the HOST network and want to modify the listening port, you can add environment variables to container:
-
-   ```
-   SERVICE_PORT=5533
-   ```
-
-   **Docker Compose:**
-   ```
-   wget https://raw.githubusercontent.com/bitxeno/atvloadly/refs/heads/master/docker-compose.yml
-   docker compose pull
-   docker compose up -d
-   ```
-
-
-
-## Getting Started
-
-### Preparation (very important‼️)
-
-1. A burned account
-> Dedicated Apple ID installation account, both free or developer accounts are acceptable (**For security reasons, avoid using commonly used accounts. Instead, create a burned account for installation!**)
-> A free Apple ID allows only a few signing certificates, shared by every sideloading tool that uses the account. When atvloadly cannot create one because the account is full, it never revokes a certificate on its own: the install page asks which certificate, if any, may be revoked.
-2. A phone to 2FA Verification
-> atvloadly needs to be authorized as a trusted device (it will be virtualized as a MacBook). When logging in, Apple will send a 2FA verification code to the registered phone number of your account or to a device that has already logged in with the installation account. Please authorize and verify promptly.
-
-### Operation process
-
-1. Open the Apple TV settings menu, select `Remote and Devices -> Remote App and Devices`, enter pairing mode.
-2. Open the web management page, normally it will display the pairable `AppleTV`.
-3. Click on the `AppleTV` device to enter the pairing page and complete the pairing operation.
-4. After successful pairing, return to the home page, where the connected `AppleTV` will be displayed.
-5. Click on the connected `AppleTV` to enter the sideload installation page, select the IPA file that needs to be sideloaded, and click `Install`.
-
-### External certificate (P12) signing
-
-If you already own a code signing certificate, you can import its `.p12` (with its password, which may be empty) and a matching `.mobileprovision` profile (a **tvOS** profile listing the Apple TV UDID for an Apple TV), then choose **External certificate** on the install page. No Apple ID is asked for or used. Apps signed this way are not refreshed automatically: they expire at the earlier of the certificate and profile expiries, and reinstalling with the same certificate and profile does not extend that date. After replacing the profile (or with a new identity), reinstall or update the app to apply the new expiry. They can be installed from and track a source (GitHub releases or AltStore), their updates being signed with the same identity.
-
-The private keys are stored encrypted with a deployment key file (`signing.key_file`, default `/data/keys/signing-identity.key`): back it up together with the database. atvloadly has no authentication, so keep it on a trusted network.
-
-[>> External certificate guide](./doc/external-certificate.md)
-
-## FAQ
-
-1. How many apps can be installed with a free account?
-
-> Each free Apple ID can register up to 10 apps and activate up to 3 apps simultaneously. Installing more than 3 will cause previously installed apps to become unavailable.
-
-2. Unable to find AppleTV
-
-> Please turn off the VPN, restart the AppleTV, re-enter pairing mode, make sure **[Tool]** can detect devices of the `_remotepairing-manual-pairing._tcp` type, and pair again.
+> ⚠️ **Bản KHÔNG CHÍNH THỨC.** Tác giả atvloadly chỉ hỗ trợ Linux/Docker. Đây là fork có vá nhỏ để chạy trên Windows. Đừng báo lỗi của bản này lên repo gốc.
 >
-> Try using `privileged: true` in your docker-compose.yml or `--privileged` in your docker run command instead of `--security-opt seccomp:unconfined`.
+> README gốc của atvloadly: [README.upstream.md](README.upstream.md)
 
-3. Failed to log in to Apple account
+## Tải về
 
-> This may have triggered Apple's risk control. Apple has login restrictions for certain regions. You can try adding a proxy in the settings. Alternatively, try creating a new account.
+Xem [Releases](../../releases):
 
-4. IPA crashes after installation
+- `atvloadly-setup.exe` — bộ cài (khuyên dùng), giao diện tiếng Việt.
+- `atvloadly-windows.zip` — bản portable (giải nén và chạy `start.bat`).
+- `SHA256SUMS.txt` — mã băm để kiểm tra file.
 
-> If the IPA requires permissions such as CloudKit, only paid developer accounts can sign and enable them. After sideloading with atvloadly, the IPA's `Bundle Identifier` will be modified, and some IPAs may restrict this, causing crashes.
+## Cài đặt (bộ cài)
 
-5. Installation failure after system upgrade.
+1. Chạy `atvloadly-setup.exe` (cần quyền Admin). SmartScreen có thể cảnh báo vì file chưa ký số: **More info → Run anyway**.
+2. Chọn thành phần:
+   - Loại trừ Microsoft Defender (thư mục cài đặt + `%APPDATA%\PlumeImpactor`).
+   - Mở tường lửa: TCP 5533, UDP 5353 (mDNS), chỉ mạng **Private**.
+   - Tải thư viện anisette của Apple (~140 MB, từ `apps.mzstatic.com`).
+   - Biểu tượng Desktop, tự chạy khi đăng nhập (tuỳ chọn).
+3. Kết thúc: app chạy ngầm và mở **http://localhost:5533**.
 
-> After upgrading the system, re-pairing is required. Generally, newly released systems are not supported. It is recommended to disable automatic system updates.
+Dữ liệu: `%LOCALAPPDATA%\atvloadly` (cấu hình, CSDL, log) và `%APPDATA%\PlumeImpactor` (Apple ID, file ghép đôi, anisette). Gỡ cài đặt sẽ dừng app, xoá luật tường lửa, loại trừ Defender, tự khởi động, và hỏi có xoá dữ liệu không.
 
-6. Can App-specific passwords be used for passwords? Is it more secure this way?
+## Ghép đôi Apple TV (tvOS 17+)
 
-> Currently does not support it.
+1. Apple TV và PC cùng mạng LAN/Wi-Fi (mạng của PC đặt là **Private**, không qua VPN / Guest network).
+2. Trên Apple TV: **Settings → Remotes and Devices → Remote App and Devices** (để màn hình ghép đôi mở).
+3. Trong atvloadly, Apple TV hiện ra → bấm **Pair** → nhập mã PIN hiển thị trên TV.
+4. Đăng nhập Apple ID (nên dùng Apple ID phụ), upload IPA. atvloadly tự gia hạn khi PC bật và app đang chạy.
 
-## API
+Không cần iTunes/Bonjour cho tvOS 17+ (kết nối RemotePairing/RSD qua mạng). Kiểu kết nối cũ (tvOS 16 trở xuống hoặc USB) cần Apple Mobile Device Service: cài app [Apple Devices](https://apps.microsoft.com/detail/9np83lwlpz9k) từ Microsoft Store.
 
-- `/healthcheck`: Return service health status (200 indicates normal, 503 indicates that an app has expired).
+## Lưu ý / rủi ro
 
-- `/mcp`: MCP service api, streamable http transport, can connect to AI Agent to install or refresh apps.
+- **Chưa kiểm tra trên Windows thật:** tìm Apple TV qua mDNS, ghép đôi, cài app, trình nạp anisette. Đã kiểm tra (qua Wine): máy chủ web, giao diện, API, gọi `plumesign.exe`, cài/gỡ bằng bộ cài. Log: `%LOCALAPPDATA%\atvloadly\app.log`.
+- **Bonjour:** atvloadly nghe mDNS trên UDP 5353 với `SO_REUSEADDR`, dùng chung cổng với Bonjour (`mDNSResponder.exe`, cũng dùng `SO_REUSEADDR`) — không cần gỡ Bonjour; bộ cài không đụng tới Bonjour. Nếu không thấy Apple TV, có thể kiểm tra bằng `dns-sd -B _remotepairing-manual-pairing._tcp` và ghép đôi thủ công: `plumesign.exe pair --ip <IP> --port <port>` (lấy IP/port bằng `dns-sd -L`).
+- **Anisette:** plumesign nạp trực tiếp thư viện Android ELF của Apple (`libstoreservicescore.so`, `libCoreADI.so`) bằng trình nạp ELF tích hợp (android-loader + hàm POSIX giả lập cho Windows). Nếu thiếu/lỗi, plumesign tự dùng máy chủ anisette từ xa `ani.sidestore.io`. Thư viện Apple **không** nằm trong repo hay bộ cài; được tải từ máy chủ Apple khi cài.
+- **Defender / antivirus:** nếu file bị cách ly: Windows Security → Virus & threat protection → Protection history → Restore / Allow on device, rồi cài lại. Loại trừ Defender làm giảm bảo vệ cho 2 thư mục trên (có thể bỏ chọn khi cài).
+- **SmartScreen:** bộ cài và exe chưa ký số.
+- Đổi cổng: sửa `Const PORT = "5533"` trong `C:\Program Files\atvloadly\atvloadly.vbs`.
 
+## Build từ mã nguồn
 
-## How to build
+Trên Linux (Debian/Ubuntu), cần: Go ≥ 1.25 (hoặc `GOTOOLCHAIN=auto`), Node.js/npm, `gcc-mingw-w64-x86-64`, rustup (stable) + target `x86_64-pc-windows-gnu`, `cmake`, `nasm`, `nsis`, `python3`.
 
-[>> wiki](https://github.com/bitxeno/atvloadly/wiki/How-to-build)
+```bash
+rustup target add x86_64-pc-windows-gnu
+./windows/build.sh
+# -> windows/dist/atvloadly-setup.exe, atvloadly-windows.zip, SHA256SUMS.txt
+```
 
-## Credits
+`plumesign.exe` được build (không sửa) từ [bitxeno/PlumeImpactor](https://github.com/bitxeno/PlumeImpactor) tag `v2.2.3-patch.8` — bản fork mà atvloadly cần. Bản `plumesign` của [claration/impactor](https://github.com/claration/impactor) **không** dùng được vì thiếu các lệnh `pair`, `check`, `certificate`, `sign-rsd`, `device-info`.
 
-[Impactor](https://github.com/claration/Impactor): the sideload core
+### Thay đổi so với bitxeno/atvloadly
 
-[idevice](https://github.com/jkcoxson/idevice): libimobiledevice in pure Rust
+Toàn bộ trong [windows/patches/atvloadly-windows.patch](windows/patches/atvloadly-windows.patch) (và commit trong repo này):
 
-[usbmuxd2](https://github.com/tihmstar/usbmuxd2): usbmuxd implementation for linux
+| File | Thay đổi |
+|---|---|
+| `internal/signing/flock_{unix,windows}.go`, `workspace.go`, `material.go` | Thay `syscall.Flock`/`O_NOFOLLOW` (chỉ có trên Unix) bằng `LockFileEx` trên Windows; giải phóng khoá trước khi xoá thư mục. |
+| `internal/i18n/i18n.go` | Đường dẫn trong `embed.FS` dùng `path.Join` (lỗi crash `locales\en.json` trên Windows). |
+| `internal/app/config.go` | Thư mục dữ liệu plumesign trên Windows là `%APPDATA%\PlumeImpactor`. |
+| `internal/exec/resolve.go`, `command.go` | Tìm `plumesign.exe` cạnh `atvloadly.exe` (Go chặn chạy file trong thư mục hiện tại — `exec.ErrDot`). |
+| `internal/utils/env_platform.go`, `install_manager.go`, `install_external.go` | Cô lập thư mục tạm/home cho plumesign bằng `TMP`/`TEMP`/`APPDATA`/`USERPROFILE` trên Windows. |
+| `internal/service/service.go` | "Update CoreADI" ghi vào `%APPDATA%\PlumeImpactor\lib` trên Windows. |
+| `go.mod` | `golang.org/x/sys` thành dependency trực tiếp. |
 
-[frida-core:](https://github.com/frida/frida-core): remote pairing connection reference
+Trên Linux hành vi không đổi.
 
-## Disclaimer
+## License
 
-* This software is only for learning and communication purposes. The author does not assume any legal responsibility for the security risks or losses caused by the use of this software.
-* Before using this software, you should understand and bear corresponding risks, including but not limited to account freezing, which are unrelated to this software.
+- atvloadly và các thay đổi trong repo này: **AGPL-3.0** ([LICENSE](LICENSE)) — © bitxeno và cộng sự.
+- plumesign / PlumeImpactor ([bitxeno/PlumeImpactor](https://github.com/bitxeno/PlumeImpactor), fork của [claration/impactor](https://github.com/claration/impactor)): **MIT** — kèm trong bộ cài (`licenses/`).
+- Thư viện anisette là tài sản của Apple, không được phân phối trong repo/bộ cài.
+
+---
+
+## English (short)
+
+Unofficial **native Windows x64** build of [bitxeno/atvloadly](https://github.com/bitxeno/atvloadly) (sideload & auto-refresh IPAs on Apple TV) — no Docker/WSL/VM.
+
+- **Install:** run `atvloadly-setup.exe` from [Releases](../../releases) (admin; SmartScreen: *More info → Run anyway*). It installs to `Program Files\atvloadly`, optionally adds Defender exclusions and Private-profile firewall rules (TCP 5533, UDP 5353), downloads Apple's anisette libraries from Apple's CDN, and opens http://localhost:5533. A portable zip is also provided.
+- **Pairing (tvOS 17+):** Apple TV → Settings → Remotes and Devices → Remote App and Devices, then click *Pair* in atvloadly and enter the PIN. No iTunes/Bonjour needed; legacy (tvOS ≤16/USB) needs the *Apple Devices* app from the Microsoft Store.
+- **Caveats:** mDNS discovery, pairing, installs and the in-process ELF anisette loader are **untested on real Windows** (verified only under Wine for the server/UI/plumesign invocation/installer). Coexists with Bonjour on UDP 5353 (both use `SO_REUSEADDR`). Falls back to remote anisette (`ani.sidestore.io`) if the local libraries fail. Binaries are unsigned.
+- **Build:** `./windows/build.sh` on Linux (Go, Node, mingw-w64, Rust windows-gnu target, cmake, nasm, NSIS). `plumesign.exe` is built unmodified from bitxeno/PlumeImpactor `v2.2.3-patch.8`.
+- **License:** AGPL-3.0 (atvloadly + this fork's changes); plumesign is MIT. Apple's libraries are not redistributed.

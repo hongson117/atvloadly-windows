@@ -221,6 +221,11 @@ func UpdateCoreADI() error {
 	}()
 
 	destDir := filepath.Join(app.Config.Server.DataDir, "PlumeImpactor", "lib", pkgArch)
+	if runtime.GOOS == "windows" {
+		// No /data/PlumeImpactor symlink on Windows: write straight into the
+		// directory plumesign reads (%APPDATA%\PlumeImpactor). Windows port.
+		destDir = filepath.Join(app.SideloadDataDir(), "lib", pkgArch)
+	}
 	if err := os.MkdirAll(destDir, os.ModePerm); err != nil {
 		return fmt.Errorf("create dir failed: %w", err)
 	}

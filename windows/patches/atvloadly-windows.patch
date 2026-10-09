@@ -1,0 +1,388 @@
+diff --git a/go.mod b/go.mod
+index b6301f9..92ccdb3 100644
+--- a/go.mod
++++ b/go.mod
+@@ -84,7 +84,7 @@ require (
+ 	golang.org/x/mod v0.35.0 // indirect
+ 	golang.org/x/net v0.53.0 // indirect
+ 	golang.org/x/sync v0.20.0 // indirect
+-	golang.org/x/sys v0.43.0 // indirect
++	golang.org/x/sys v0.43.0
+ 	golang.org/x/tools v0.44.0 // indirect
+ 	gopkg.in/yaml.v3 v3.0.1 // indirect
+ 	modernc.org/libc v1.22.5 // indirect
+diff --git a/internal/app/config.go b/internal/app/config.go
+index 3a5d0eb..4298b52 100644
+--- a/internal/app/config.go
++++ b/internal/app/config.go
+@@ -52,6 +52,13 @@ type Configuration struct {
+ }
+ 
+ func SideloadDataDir() string {
++	// plumesign uses %APPDATA%\PlumeImpactor on Windows (see get_data_path in
++	// PlumeImpactor apps/plumesign/src/main.rs). Added for the Windows port.
++	if runtime.GOOS == "windows" {
++		if appData := os.Getenv("APPDATA"); appData != "" {
++			return filepath.Join(appData, "PlumeImpactor")
++		}
++	}
+ 	if home, err := os.UserHomeDir(); err != nil {
+ 		return "~/.config/PlumeImpactor"
+ 	} else {
+diff --git a/internal/exec/command.go b/internal/exec/command.go
+index 8942b8c..d1805d6 100644
+--- a/internal/exec/command.go
++++ b/internal/exec/command.go
+@@ -131,7 +131,7 @@ func (c *Cmd) Run() error {
+ 	defer cancel()
+ 
+ 	log.Debugf(">> %s", c.logLine())
+-	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
++	cmd := exec.CommandContext(ctx, resolveName(c.Name), c.Args...)
+ 	c.setupCmd(cmd)
+ 
+ 	err := cmd.Run()
+@@ -155,7 +155,7 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
+ 	defer cancel()
+ 
+ 	log.Debugf(">> %s", c.logLine())
+-	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
++	cmd := exec.CommandContext(ctx, resolveName(c.Name), c.Args...)
+ 	c.setupCmd(cmd)
+ 
+ 	output, err := cmd.CombinedOutput()
+diff --git a/internal/exec/resolve.go b/internal/exec/resolve.go
+new file mode 100644
+index 0000000..b830e76
+--- /dev/null
++++ b/internal/exec/resolve.go
+@@ -0,0 +1,32 @@
++package exec
++
++import (
++	"os"
++	"path/filepath"
++	"runtime"
++	"strings"
++)
++
++// resolveName returns the program to run for name. On Windows a bare program
++// name (e.g. "plumesign") is first looked up next to the running executable,
++// because Go's os/exec refuses to run binaries found in the current directory
++// (exec.ErrDot) and a portable install keeps plumesign.exe beside
++// atvloadly.exe. Other platforms keep the plain PATH lookup. Added for the
++// Windows port.
++func resolveName(name string) string {
++	if runtime.GOOS != "windows" || strings.ContainsAny(name, `/\`) {
++		return name
++	}
++	self, err := os.Executable()
++	if err != nil {
++		return name
++	}
++	candidate := filepath.Join(filepath.Dir(self), name)
++	if !strings.HasSuffix(strings.ToLower(candidate), ".exe") {
++		candidate += ".exe"
++	}
++	if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
++		return candidate
++	}
++	return name
++}
+diff --git a/internal/i18n/i18n.go b/internal/i18n/i18n.go
+index e80e9d0..ddaa216 100644
+--- a/internal/i18n/i18n.go
++++ b/internal/i18n/i18n.go
+@@ -3,7 +3,7 @@ package i18n
+ import (
+ 	"encoding/json"
+ 	"io/fs"
+-	"path/filepath"
++	"path"
+ 
+ 	"github.com/nicksnyder/go-i18n/v2/i18n"
+ 	"golang.org/x/text/language"
+@@ -22,7 +22,8 @@ func Init(localesFs fs.FS) {
+ 		panic(err)
+ 	}
+ 	for _, v := range files {
+-		path := filepath.Join(root, v.Name())
++		// io/fs paths always use forward slashes (filepath.Join breaks on Windows).
++		path := path.Join(root, v.Name())
+ 		if _, err := i18nBundle.LoadMessageFileFS(localesFs, path); err != nil {
+ 			panic(err)
+ 		}
+diff --git a/internal/manager/install_external.go b/internal/manager/install_external.go
+index 2b06f14..bb07631 100644
+--- a/internal/manager/install_external.go
++++ b/internal/manager/install_external.go
+@@ -162,7 +162,7 @@ func buildExternalInstallArgs(opts InstallOptions) []string {
+ // the engine then sees neither the Apple ID accounts nor the files of other
+ // installations. The proxy settings of base are kept.
+ func externalRunEnv(base []string, ext ExternalSigning) []string {
+-	return utils.MergeEnvs(base, []string{"HOME=" + ext.HomeDir, "TMPDIR=" + ext.TempDir})
++	return utils.MergeEnvs(base, append(utils.HomeDirEnvs(ext.HomeDir), utils.TempDirEnvs(ext.TempDir)...))
+ }
+ 
+ // classifyExternalFailure maps a failed external certificate engine run to a
+diff --git a/internal/manager/install_manager.go b/internal/manager/install_manager.go
+index 3474d3f..5fc449f 100644
+--- a/internal/manager/install_manager.go
++++ b/internal/manager/install_manager.go
+@@ -193,7 +193,7 @@ func appleIDRunEnv(base []string) ([]string, string, error) {
+ 	if err != nil {
+ 		return nil, "", err
+ 	}
+-	return utils.MergeEnvs(base, []string{"TMPDIR=" + tempDir}), tempDir, nil
++	return utils.MergeEnvs(base, utils.TempDirEnvs(tempDir)), tempDir, nil
+ }
+ 
+ // withRunTimeout bounds ctx by installTimeout and makes it the context
+diff --git a/internal/service/service.go b/internal/service/service.go
+index 9d22b4f..740e90d 100644
+--- a/internal/service/service.go
++++ b/internal/service/service.go
+@@ -221,6 +221,11 @@ func UpdateCoreADI() error {
+ 	}()
+ 
+ 	destDir := filepath.Join(app.Config.Server.DataDir, "PlumeImpactor", "lib", pkgArch)
++	if runtime.GOOS == "windows" {
++		// No /data/PlumeImpactor symlink on Windows: write straight into the
++		// directory plumesign reads (%APPDATA%\PlumeImpactor). Windows port.
++		destDir = filepath.Join(app.SideloadDataDir(), "lib", pkgArch)
++	}
+ 	if err := os.MkdirAll(destDir, os.ModePerm); err != nil {
+ 		return fmt.Errorf("create dir failed: %w", err)
+ 	}
+diff --git a/internal/signing/flock_unix.go b/internal/signing/flock_unix.go
+new file mode 100644
+index 0000000..e7edda7
+--- /dev/null
++++ b/internal/signing/flock_unix.go
+@@ -0,0 +1,26 @@
++//go:build !windows
++
++package signing
++
++import (
++	"os"
++	"syscall"
++)
++
++// Platform shims for file locking (added for the Windows port).
++const (
++	oNoFollow = syscall.O_NOFOLLOW
++	lockSH    = syscall.LOCK_SH
++	lockEX    = syscall.LOCK_EX
++	lockNB    = syscall.LOCK_NB
++
++	// closeLockBeforeRemove: POSIX allows removing a directory whose files
++	// are still open, so the lock is kept until after removal.
++	closeLockBeforeRemove = false
++)
++
++var errWouldBlock = syscall.EWOULDBLOCK
++
++func flockFile(f *os.File, how int) error {
++	return syscall.Flock(int(f.Fd()), how)
++}
+diff --git a/internal/signing/flock_windows.go b/internal/signing/flock_windows.go
+new file mode 100644
+index 0000000..ea14479
+--- /dev/null
++++ b/internal/signing/flock_windows.go
+@@ -0,0 +1,36 @@
++//go:build windows
++
++package signing
++
++import (
++	"os"
++
++	"golang.org/x/sys/windows"
++)
++
++// Windows emulation of flock(2) using LockFileEx. Windows has no O_NOFOLLOW;
++// symlink checks elsewhere (Lstat) still apply.
++const (
++	oNoFollow = 0
++	lockSH    = 1
++	lockEX    = 2
++	lockNB    = 4
++
++	// Windows cannot delete a file that is still open, so the workspace lock
++	// must be released before the directory is removed.
++	closeLockBeforeRemove = true
++)
++
++var errWouldBlock error = windows.ERROR_LOCK_VIOLATION
++
++func flockFile(f *os.File, how int) error {
++	var flags uint32
++	if how&lockEX != 0 {
++		flags |= windows.LOCKFILE_EXCLUSIVE_LOCK
++	}
++	if how&lockNB != 0 {
++		flags |= windows.LOCKFILE_FAIL_IMMEDIATELY
++	}
++	ol := new(windows.Overlapped)
++	return windows.LockFileEx(windows.Handle(f.Fd()), flags, 0, 1, 0, ol)
++}
+diff --git a/internal/signing/material.go b/internal/signing/material.go
+index 48216ac..fee570d 100644
+--- a/internal/signing/material.go
++++ b/internal/signing/material.go
+@@ -7,7 +7,6 @@ import (
+ 	"encoding/pem"
+ 	"os"
+ 	"path/filepath"
+-	"syscall"
+ 
+ 	"github.com/bitxeno/atvloadly/internal/model"
+ )
+@@ -79,7 +78,7 @@ func Materialize(ws *Workspace, identity model.SigningIdentity, sealer *Sealer)
+ // writeSecretFile creates path (0600, never replacing an existing file or
+ // following a symlink) with data.
+ func writeSecretFile(path string, data []byte) error {
+-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0o600)
++	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL|oNoFollow, 0o600)
+ 	if err != nil {
+ 		return Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing material cannot be written")
+ 	}
+diff --git a/internal/signing/workspace.go b/internal/signing/workspace.go
+index ed0880a..7737b42 100644
+--- a/internal/signing/workspace.go
++++ b/internal/signing/workspace.go
+@@ -7,7 +7,6 @@ import (
+ 	"path/filepath"
+ 	"strings"
+ 	"sync"
+-	"syscall"
+ 
+ 	"github.com/bitxeno/atvloadly/internal/log"
+ )
+@@ -47,7 +46,7 @@ func NewWorkspace() (*Workspace, error) {
+ 	if err := ensureWorkspaceRoot(root); err != nil {
+ 		return nil, err
+ 	}
+-	rootLock, err := lockPath(filepath.Join(root, lockFileName), syscall.LOCK_SH)
++	rootLock, err := lockPath(filepath.Join(root, lockFileName), lockSH)
+ 	if err != nil {
+ 		return nil, Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace root cannot be locked")
+ 	}
+@@ -67,11 +66,11 @@ func NewWorkspace() (*Workspace, error) {
+ 
+ // openWorkspace locks the new directory dir and creates its subdirectories.
+ func openWorkspace(dir string) (*Workspace, error) {
+-	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0o600)
++	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|os.O_CREATE|os.O_EXCL|oNoFollow, 0o600)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
++	if err := flockFile(lock, lockEX|lockNB); err != nil {
+ 		_ = lock.Close()
+ 		return nil, err
+ 	}
+@@ -101,8 +100,13 @@ func (w *Workspace) Close() error {
+ 	if w.state.lock == nil {
+ 		return nil
+ 	}
++	if closeLockBeforeRemove {
++		_ = w.state.lock.Close()
++	}
+ 	err := os.RemoveAll(w.Dir)
+-	_ = w.state.lock.Close()
++	if !closeLockBeforeRemove {
++		_ = w.state.lock.Close()
++	}
+ 	w.state.lock = nil
+ 	if err != nil {
+ 		return Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace cannot be removed")
+@@ -124,7 +128,7 @@ func RecoverWorkspaces() (int, error) {
+ 	if err := ensureWorkspaceRoot(root); err != nil {
+ 		return 0, err
+ 	}
+-	rootLock, err := lockPath(filepath.Join(root, lockFileName), syscall.LOCK_EX)
++	rootLock, err := lockPath(filepath.Join(root, lockFileName), lockEX)
+ 	if err != nil {
+ 		return 0, Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace root cannot be locked")
+ 	}
+@@ -156,20 +160,25 @@ func RecoverWorkspaces() (int, error) {
+ // removeOrphanWorkspace removes dir when it has no lock file or when its lock
+ // can be acquired. It reports whether dir was removed.
+ func removeOrphanWorkspace(dir string) (bool, error) {
+-	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|syscall.O_NOFOLLOW, 0)
++	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|oNoFollow, 0)
+ 	if errors.Is(err, fs.ErrNotExist) {
+ 		return true, os.RemoveAll(dir)
+ 	}
+ 	if err != nil {
+ 		return false, err
+ 	}
+-	defer func() { _ = lock.Close() }()
+-	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+-		if errors.Is(err, syscall.EWOULDBLOCK) {
++	if err := flockFile(lock, lockEX|lockNB); err != nil {
++		_ = lock.Close()
++		if errors.Is(err, errWouldBlock) {
+ 			return false, nil
+ 		}
+ 		return false, err
+ 	}
++	if closeLockBeforeRemove {
++		_ = lock.Close()
++		return true, os.RemoveAll(dir)
++	}
++	defer func() { _ = lock.Close() }()
+ 	return true, os.RemoveAll(dir)
+ }
+ 
+@@ -198,11 +207,11 @@ func ensureWorkspaceRoot(root string) error {
+ // lockPath opens (creating it 0600 when missing) and flocks path with how,
+ // waiting for conflicting holders.
+ func lockPath(path string, how int) (*os.File, error) {
+-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW, 0o600)
++	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|oNoFollow, 0o600)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if err := syscall.Flock(int(f.Fd()), how); err != nil {
++	if err := flockFile(f, how); err != nil {
+ 		_ = f.Close()
+ 		return nil, err
+ 	}
+diff --git a/internal/utils/env_platform.go b/internal/utils/env_platform.go
+new file mode 100644
+index 0000000..b3fb02c
+--- /dev/null
++++ b/internal/utils/env_platform.go
+@@ -0,0 +1,28 @@
++package utils
++
++import (
++	"path/filepath"
++	"runtime"
++)
++
++// TempDirEnvs returns the environment overrides that point a child process's
++// temporary directory at dir. Unix programs read TMPDIR; Windows programs
++// (Rust's std::env::temp_dir) read TMP/TEMP instead. Added for the Windows port.
++func TempDirEnvs(dir string) []string {
++	envs := []string{"TMPDIR=" + dir}
++	if runtime.GOOS == "windows" {
++		envs = append(envs, "TMP="+dir, "TEMP="+dir)
++	}
++	return envs
++}
++
++// HomeDirEnvs returns the environment overrides that point a child process's
++// home/config directory at home. plumesign stores its data under
++// $HOME/.config/PlumeImpactor on Unix and %APPDATA%\PlumeImpactor on Windows.
++func HomeDirEnvs(home string) []string {
++	envs := []string{"HOME=" + home}
++	if runtime.GOOS == "windows" {
++		envs = append(envs, "USERPROFILE="+home, "APPDATA="+filepath.Join(home, ".config"))
++	}
++	return envs
++}

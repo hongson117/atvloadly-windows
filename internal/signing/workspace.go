@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/bitxeno/atvloadly/internal/log"
 )
@@ -47,7 +46,7 @@ func NewWorkspace() (*Workspace, error) {
 	if err := ensureWorkspaceRoot(root); err != nil {
 		return nil, err
 	}
-	rootLock, err := lockPath(filepath.Join(root, lockFileName), syscall.LOCK_SH)
+	rootLock, err := lockPath(filepath.Join(root, lockFileName), lockSH)
 	if err != nil {
 		return nil, Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace root cannot be locked")
 	}
@@ -67,11 +66,11 @@ func NewWorkspace() (*Workspace, error) {
 
 // openWorkspace locks the new directory dir and creates its subdirectories.
 func openWorkspace(dir string) (*Workspace, error) {
-	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0o600)
+	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|os.O_CREATE|os.O_EXCL|oNoFollow, 0o600)
 	if err != nil {
 		return nil, err
 	}
-	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+	if err := flockFile(lock, lockEX|lockNB); err != nil {
 		_ = lock.Close()
 		return nil, err
 	}
@@ -101,8 +100,13 @@ func (w *Workspace) Close() error {
 	if w.state.lock == nil {
 		return nil
 	}
+	if closeLockBeforeRemove {
+		_ = w.state.lock.Close()
+	}
 	err := os.RemoveAll(w.Dir)
-	_ = w.state.lock.Close()
+	if !closeLockBeforeRemove {
+		_ = w.state.lock.Close()
+	}
 	w.state.lock = nil
 	if err != nil {
 		return Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace cannot be removed")
@@ -124,7 +128,7 @@ func RecoverWorkspaces() (int, error) {
 	if err := ensureWorkspaceRoot(root); err != nil {
 		return 0, err
 	}
-	rootLock, err := lockPath(filepath.Join(root, lockFileName), syscall.LOCK_EX)
+	rootLock, err := lockPath(filepath.Join(root, lockFileName), lockEX)
 	if err != nil {
 		return 0, Wrap(ClassSigning, CodeWorkspaceFailed, err, "the signing workspace root cannot be locked")
 	}
@@ -156,20 +160,25 @@ func RecoverWorkspaces() (int, error) {
 // removeOrphanWorkspace removes dir when it has no lock file or when its lock
 // can be acquired. It reports whether dir was removed.
 func removeOrphanWorkspace(dir string) (bool, error) {
-	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|syscall.O_NOFOLLOW, 0)
+	lock, err := os.OpenFile(filepath.Join(dir, lockFileName), os.O_RDWR|oNoFollow, 0)
 	if errors.Is(err, fs.ErrNotExist) {
 		return true, os.RemoveAll(dir)
 	}
 	if err != nil {
 		return false, err
 	}
-	defer func() { _ = lock.Close() }()
-	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		if errors.Is(err, syscall.EWOULDBLOCK) {
+	if err := flockFile(lock, lockEX|lockNB); err != nil {
+		_ = lock.Close()
+		if errors.Is(err, errWouldBlock) {
 			return false, nil
 		}
 		return false, err
 	}
+	if closeLockBeforeRemove {
+		_ = lock.Close()
+		return true, os.RemoveAll(dir)
+	}
+	defer func() { _ = lock.Close() }()
 	return true, os.RemoveAll(dir)
 }
 
@@ -198,11 +207,11 @@ func ensureWorkspaceRoot(root string) error {
 // lockPath opens (creating it 0600 when missing) and flocks path with how,
 // waiting for conflicting holders.
 func lockPath(path string, how int) (*os.File, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|syscall.O_NOFOLLOW, 0o600)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|oNoFollow, 0o600)
 	if err != nil {
 		return nil, err
 	}
-	if err := syscall.Flock(int(f.Fd()), how); err != nil {
+	if err := flockFile(f, how); err != nil {
 		_ = f.Close()
 		return nil, err
 	}

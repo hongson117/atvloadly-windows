@@ -131,7 +131,7 @@ func (c *Cmd) Run() error {
 	defer cancel()
 
 	log.Debugf(">> %s", c.logLine())
-	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
+	cmd := exec.CommandContext(ctx, resolveName(c.Name), c.Args...)
 	c.setupCmd(cmd)
 
 	err := cmd.Run()
@@ -155,7 +155,7 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 	defer cancel()
 
 	log.Debugf(">> %s", c.logLine())
-	cmd := exec.CommandContext(ctx, c.Name, c.Args...)
+	cmd := exec.CommandContext(ctx, resolveName(c.Name), c.Args...)
 	c.setupCmd(cmd)
 
 	output, err := cmd.CombinedOutput()

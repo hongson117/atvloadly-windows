@@ -52,6 +52,13 @@ type Configuration struct {
 }
 
 func SideloadDataDir() string {
+	// plumesign uses %APPDATA%\PlumeImpactor on Windows (see get_data_path in
+	// PlumeImpactor apps/plumesign/src/main.rs). Added for the Windows port.
+	if runtime.GOOS == "windows" {
+		if appData := os.Getenv("APPDATA"); appData != "" {
+			return filepath.Join(appData, "PlumeImpactor")
+		}
+	}
 	if home, err := os.UserHomeDir(); err != nil {
 		return "~/.config/PlumeImpactor"
 	} else {

@@ -1,0 +1,7 @@
+# Cau hinh atvloadly cho Windows (duong dan tuong doi theo thu muc cai dat)
+server:
+  listen_addr: 0.0.0.0
+  port: 5533
+  work_dir: data
+log:
+  log_file: data/app.log

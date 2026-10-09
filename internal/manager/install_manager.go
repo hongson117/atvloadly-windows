@@ -193,7 +193,7 @@ func appleIDRunEnv(base []string) ([]string, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return utils.MergeEnvs(base, []string{"TMPDIR=" + tempDir}), tempDir, nil
+	return utils.MergeEnvs(base, utils.TempDirEnvs(tempDir)), tempDir, nil
 }
 
 // withRunTimeout bounds ctx by installTimeout and makes it the context

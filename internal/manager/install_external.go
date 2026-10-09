@@ -162,7 +162,7 @@ func buildExternalInstallArgs(opts InstallOptions) []string {
 // the engine then sees neither the Apple ID accounts nor the files of other
 // installations. The proxy settings of base are kept.
 func externalRunEnv(base []string, ext ExternalSigning) []string {
-	return utils.MergeEnvs(base, []string{"HOME=" + ext.HomeDir, "TMPDIR=" + ext.TempDir})
+	return utils.MergeEnvs(base, append(utils.HomeDirEnvs(ext.HomeDir), utils.TempDirEnvs(ext.TempDir)...))
 }
 
 // classifyExternalFailure maps a failed external certificate engine run to a

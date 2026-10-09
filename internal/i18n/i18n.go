@@ -3,7 +3,7 @@ package i18n
 import (
 	"encoding/json"
 	"io/fs"
-	"path/filepath"
+	"path"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
@@ -22,7 +22,8 @@ func Init(localesFs fs.FS) {
 		panic(err)
 	}
 	for _, v := range files {
-		path := filepath.Join(root, v.Name())
+		// io/fs paths always use forward slashes (filepath.Join breaks on Windows).
+		path := path.Join(root, v.Name())
 		if _, err := i18nBundle.LoadMessageFileFS(localesFs, path); err != nil {
 			panic(err)
 		}
