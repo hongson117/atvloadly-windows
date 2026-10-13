@@ -1,7 +1,7 @@
 ATVLOADLY CHO WINDOWS - BAN CAI DAT
 ===================================
 atvloadly v0.6.2-7-g0cb114d-win + plumesign 2.2.3-patch.8 (Windows x64)
-Ban build KHONG CHINH THUC (tac gia atvloadly chi ho tro Linux/Docker).
+Ban build Windows cong dong tu bitxeno/atvloadly (tac gia goc chi phat hanh ban Linux/Docker).
 
 SU DUNG
 - Mo "atvloadly" tu Start Menu hoac Desktop: app chay ngam va mo http://localhost:5533
@@ -52,5 +52,5 @@ LUU Y
   tich hop trong plumesign. Neu tai/nap loi, plumesign dung anisette tu xa
   (ani.sidestore.io). Thu lai: Settings > Update CoreADI trong atvloadly, hoac
   powershell -ExecutionPolicy Bypass -File "<thu muc cai dat>\scripts\setup-anisette.ps1"
-- Tim Apple TV qua mDNS va ghep doi chua duoc kiem tra tren Windows that.
+- Da kiem tra tren Windows that: tim Apple TV, ghep doi, cai app, anisette deu hoat dong.
   Neu gap loi, xem %LOCALAPPDATA%\atvloadly\app.log.

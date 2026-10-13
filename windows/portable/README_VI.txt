@@ -51,10 +51,9 @@ Yeu cau: Windows 10/11 64-bit, PC va Apple TV cung mot mang LAN/Wi-Fi.
 
 5. LUU Y / RUI RO
 -----------------
-  - Day la ban build KHONG CHINH THUC. Tac gia atvloadly ghi "chi ho tro Linux".
-    Server web, giao dien, plumesign da duoc kiem tra chay duoc (thu bang Wine),
-    nhung viec tim Apple TV qua mDNS va ghep doi/cai app CHUA duoc thu tren Windows that.
-    Neu gap loi, xem data\app.log.
+  - Day la ban build Windows cong dong tu bitxeno/atvloadly (tac gia goc chi phat hanh
+    ban Linux/Docker). Da kiem tra tren Windows that: tim Apple TV qua mDNS, ghep doi,
+    cai app va anisette deu hoat dong. Neu gap loi, xem data\app.log.
   - Khong can WSL, Docker, VMware, iTunes hay Bonjour cho Apple TV tvOS 17+ (ket noi
     RemotePairing/RSD qua mang).
   - Chi khi dung kieu ket noi cu "Lockdown" (tvOS 16 tro xuong, hoac thiet bi cam USB)

@@ -56,12 +56,13 @@ cp "$WIN"/portable/{start.bat,start-hidden.vbs,install-autostart.bat,remove-auto
 cp "$WIN/portable/config.yaml" "$P/data/config.yaml"
 cp "$WIN/portable/setup-anisette.ps1" "$P/scripts/"
 cp "$WIN/portable/README_VI.txt" "$P/README_VI.txt" 2>/dev/null || cp "$WIN/launcher/README_VI.txt" "$P/README_VI.txt"
+cp "$WIN/portable/README_EN.txt" "$P/README_EN.txt" 2>/dev/null || cp "$WIN/launcher/README_EN.txt" "$P/README_EN.txt"
 (cd "$WORK/portable" && python3 -c "import shutil; shutil.make_archive('$DIST/atvloadly-windows','zip','.','atvloadly-windows')")
 
 echo "==> installer"
 I="$WIN/installer/payload"; rm -rf "$I"; mkdir -p "$I/scripts"
 common_files "$I"
-cp "$WIN"/launcher/{atvloadly.vbs,stop.bat,README_VI.txt} "$I/"
+cp "$WIN"/launcher/{atvloadly.vbs,stop.bat,README_VI.txt,README_EN.txt} "$I/"
 cp "$WIN/launcher/setup-anisette.ps1" "$I/scripts/"
 (cd "$WIN/installer" && makensis -V2 -DOUTFILE="$DIST/atvloadly-setup.exe" atvloadly.nsi)
 rm -rf "$I"
