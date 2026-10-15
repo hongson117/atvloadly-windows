@@ -37,7 +37,7 @@ Không cần iTunes/Bonjour cho tvOS 17+ (kết nối RemotePairing/RSD qua mạ
 
 ## Lưu ý / rủi ro
 
-- **Chưa kiểm tra trên Windows thật:** tìm Apple TV qua mDNS, ghép đôi, cài app, trình nạp anisette. Đã kiểm tra (qua Wine): máy chủ web, giao diện, API, gọi `plumesign.exe`, cài/gỡ bằng bộ cài. Log: `%LOCALAPPDATA%\atvloadly\app.log`.
+- **Đã kiểm tra trên Windows thật:** tìm Apple TV qua mDNS, ghép đôi, cài app, trình nạp anisette, máy chủ web, giao diện, API, gọi `plumesign.exe`, cài/gỡ bằng bộ cài. Log: `%LOCALAPPDATA%\atvloadly\app.log`.
 - **Bonjour:** atvloadly nghe mDNS trên UDP 5353 với `SO_REUSEADDR`, dùng chung cổng với Bonjour (`mDNSResponder.exe`, cũng dùng `SO_REUSEADDR`) — không cần gỡ Bonjour; bộ cài không đụng tới Bonjour. Nếu không thấy Apple TV, có thể kiểm tra bằng `dns-sd -B _remotepairing-manual-pairing._tcp` và ghép đôi thủ công: `plumesign.exe pair --ip <IP> --port <port>` (lấy IP/port bằng `dns-sd -L`).
 - **Anisette:** plumesign nạp trực tiếp thư viện Android ELF của Apple (`libstoreservicescore.so`, `libCoreADI.so`) bằng trình nạp ELF tích hợp (android-loader + hàm POSIX giả lập cho Windows). Nếu thiếu/lỗi, plumesign tự dùng máy chủ anisette từ xa `ani.sidestore.io`. Thư viện Apple **không** nằm trong repo hay bộ cài; được tải từ máy chủ Apple khi cài.
 - **Defender / antivirus:** nếu file bị cách ly: Windows Security → Virus & threat protection → Protection history → Restore / Allow on device, rồi cài lại. Loại trừ Defender làm giảm bảo vệ cho 2 thư mục trên (có thể bỏ chọn khi cài).
@@ -86,6 +86,6 @@ Unofficial **native Windows x64** build of [bitxeno/atvloadly](https://github.co
 
 - **Install:** run `atvloadly-setup.exe` from [Releases](../../releases) (admin; SmartScreen: *More info → Run anyway*). It installs to `Program Files\atvloadly`, optionally adds Defender exclusions and Private-profile firewall rules (TCP 5533, UDP 5353), downloads Apple's anisette libraries from Apple's CDN, and opens http://localhost:5533. A portable zip is also provided.
 - **Pairing (tvOS 17+):** Apple TV → Settings → Remotes and Devices → Remote App and Devices, then click *Pair* in atvloadly and enter the PIN. No iTunes/Bonjour needed; legacy (tvOS ≤16/USB) needs the *Apple Devices* app from the Microsoft Store.
-- **Caveats:** mDNS discovery, pairing, installs and the in-process ELF anisette loader are **untested on real Windows** (verified only under Wine for the server/UI/plumesign invocation/installer). Coexists with Bonjour on UDP 5353 (both use `SO_REUSEADDR`). Falls back to remote anisette (`ani.sidestore.io`) if the local libraries fail. Binaries are unsigned.
+- **Caveats:** Tested on real Windows: mDNS discovery, pairing, installs, the in-process ELF anisette loader, the server/UI, plumesign invocation and the installer. Coexists with Bonjour on UDP 5353 (both use `SO_REUSEADDR`). Falls back to remote anisette (`ani.sidestore.io`) if the local libraries fail. Binaries are unsigned.
 - **Build:** `./windows/build.sh` on Linux (Go, Node, mingw-w64, Rust windows-gnu target, cmake, nasm, NSIS). `plumesign.exe` is built unmodified from bitxeno/PlumeImpactor `v2.2.3-patch.8`.
 - **License:** AGPL-3.0 (atvloadly + this fork's changes); plumesign is MIT. Apple's libraries are not redistributed.
