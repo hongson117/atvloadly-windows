@@ -71,6 +71,12 @@ Dựa trên atvloadly tag `v0.8.0` (commit `f6c53de`, đã hỗ trợ khoá file
 
 Trên Linux hành vi không đổi.
 
+## Ủng hộ
+
+Nếu atvloadly Windows hữu ích, bạn có thể ủng hộ tác giả qua MoMo / chuyển khoản VietQR. Cảm ơn bạn! ❤️
+
+<img src="docs/donate_qr.png" alt="MoMo / VietQR" width="320">
+
 ## License
 
 - atvloadly và các thay đổi trong repo này: **AGPL-3.0** ([LICENSE](LICENSE)) — © bitxeno và cộng sự.
@@ -90,3 +96,9 @@ Unofficial **native Windows x64** build of [bitxeno/atvloadly](https://github.co
 - **Caveats:** v0.8.0-1-win was tested under Linux/wine (install/uninstall, UI, API, plumesign) plus Apple login with the matching Linux plumesign; pairing/installs on real Windows not re-tested yet. v1.0.x was tested on real Windows: mDNS discovery, pairing, installs, the in-process ELF anisette loader, the server/UI, plumesign invocation and the installer. Coexists with Bonjour on UDP 5353 (both use `SO_REUSEADDR`). Binaries are unsigned.
 - **Build:** `./windows/build.sh` on Linux (Go, Node, mingw-w64, NSIS). `plumesign.exe` is the official unmodified `plumesign-windows-x86_64.exe` from bitxeno/PlumeImpactor `v2.7.1-patch.5`; atvloadly is upstream `v0.8.0` + `windows/patches/atvloadly-windows.patch`.
 - **License:** AGPL-3.0 (atvloadly + this fork's changes); plumesign is MIT. Apple's libraries are not redistributed.
+
+### Donate
+
+If atvloadly Windows is useful to you, you can support the author via MoMo / VietQR bank transfer (QR above). Thank you! ❤️
+
+<img src="docs/donate_qr.png" alt="MoMo / VietQR" width="320">

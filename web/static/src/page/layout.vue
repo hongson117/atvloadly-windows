@@ -127,6 +127,13 @@
           </div>
 
           <div>
+            <button type="button" class="btn btn-ghost rounded-btn px-2 md:px-4 text-error" @click="showWinDonateModal = true" aria-label="Ủng hộ / Donate">
+              <span class="w-5"><LikeIcon class="w-5 h-5" /></span>
+              <span class="hidden sm:inline">Ủng hộ / Donate</span>
+            </button>
+          </div>
+
+          <div>
             <a href="https://github.com/bitxeno/atvloadly" target="_blank">
               <label tabindex="0" class="btn btn-ghost rounded-btn">
                 <GithubIcon class="w-5 h-5" /></label>
@@ -138,6 +145,19 @@
 
     <div class="main-container">
       <router-view />
+    </div>
+
+    <!-- Windows build donate (MoMo / VietQR) -->
+    <div v-if="showWinDonateModal" class="modal modal-open modal-middle" @click.self="showWinDonateModal = false">
+      <div class="modal-box relative text-center">
+        <label @click="showWinDonateModal = false" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+        <h3 class="font-bold text-lg flex items-center justify-center gap-2">
+          <LikeIcon class="w-6 h-6 text-red-500" /> Ủng hộ / Donate
+        </h3>
+        <img :src="donateQr" alt="MoMo / VietQR" class="mx-auto my-4 rounded-xl bg-white p-2" style="width: 320px; max-width: 100%;" />
+        <p class="text-base-content/80">Nếu atvloadly Windows hữu ích, bạn có thể ủng hộ tác giả qua MoMo / chuyển khoản VietQR. Cảm ơn bạn!</p>
+        <p class="mt-2 text-sm text-base-content/60">If atvloadly Windows is useful to you, you can support the author via MoMo / VietQR bank transfer. Thank you!</p>
+      </div>
     </div>
 
     <!-- Donate Modal -->
@@ -211,6 +231,8 @@ export default {
       themePreference: "light",
       colorSchemeQuery: null,
       showDonateModal: false,
+      showWinDonateModal: false,
+      donateQr,
       showAboutModal: false,
       appVersion: "unknown",
       buildDate: "unknown",
@@ -333,6 +355,7 @@ import AccountIcon from "@/assets/icons/person.svg";
 import OptionIcon from "@/assets/icons/slider.svg";
 import LikeIcon from "@/assets/icons/like.svg";
 import DonateThumbIcon from "@/assets/icons/donate-thumb.svg";
+import donateQr from "@/assets/donate_qr.png";
 import AfdianIcon from "@/assets/icons/afdian.svg";
 import KofiIcon from "@/assets/icons/kofi.svg";
 import ToolsIcon from "@/assets/icons/tools.svg";

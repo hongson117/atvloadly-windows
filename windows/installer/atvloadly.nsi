@@ -6,7 +6,7 @@ SetCompressor /SOLID lzma
 
 !define APPNAME "atvloadly"
 !define APPVER "0.8.0.1"
-!define APPVERSTR "0.8.0-1-win"
+!define APPVERSTR "0.8.0-2-win"
 !define PUBLISHER "Community Windows build of bitxeno/atvloadly"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\atvloadly"
 !define STOREURL "ms-windows-store://pdp/?ProductId=9NP83LWLPZ9K"

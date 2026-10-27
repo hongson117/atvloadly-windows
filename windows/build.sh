@@ -21,7 +21,7 @@ echo "==> frontend"
 (cd "$ROOT/web/static" && npm install && npm run build)
 
 echo "==> atvloadly.exe (CGO via mingw-w64: needed by github.com/blacktop/lzfse-cgo)"
-VERSION="${WIN_VERSION:-0.8.0-1-win}"
+VERSION="${WIN_VERSION:-0.8.0-2-win}"
 PKG=github.com/bitxeno/atvloadly/internal/app/build
 (cd "$ROOT" && CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 \
   go build -trimpath -ldflags "-w -s -X $PKG.Version=$VERSION -X $PKG.BuildDate=$(date +%F) -X $PKG.Commit=$(git rev-parse HEAD) -X $PKG.Mode=production" \
