@@ -1,5 +1,10 @@
 {
   "language": "sr-Latn",
+  "tray": {
+    "open_browser": "Otvori u pregledaču",
+    "open_log": "Otvori datoteku evidencije",
+    "quit": "Izađi"
+  },
   "common": {
     "loading": "Učitavanje...",
     "button": {
@@ -50,7 +55,6 @@
   },
   "home": {
     "heading": {
-      "pairable_devices": "Uređaji spremni za uparivanje",
       "paired_devices": "Upareni uređaji",
       "service_status": "Status usluge",
       "installed_app": "Instalirane aplikacije"
@@ -82,10 +86,19 @@
       "update_failed": "Instaliranje verzije {{version}} nije uspelo i neće se automatski ponoviti. Koristite „Ažuriraj“ da pokušate ponovo."
     },
     "sidebar": {
+      "add_device": {
+        "title": "Dodaj novi uređaj",
+        "subtitle": "Povežite AppleTV ili iPhone"
+      },
       "device_status": {
         "pairable": "Spreman za uparivanje",
         "paired": "Uparen",
-        "unpaired": "Nije uparen"
+        "unpaired": "Nije uparen",
+        "added": "Dodat",
+        "ip_badge": "IP",
+        "forget": "Obriši",
+        "forget_confirm": "Potvrdi",
+        "forget_done": "Uređaj je zaboravljen"
       },
       "tips": {
         "no_paired_devices": "Nema povezanih uređaja",
@@ -152,6 +165,17 @@
       "pin_incorrect": "PIN kod nije ispravan",
       "pair_error": "Greška pri uparivanju. Više informacija potražite u konzoli.",
       "no_device_found": "Uređaj nije pronađen. Proverite da li je usluga usbmuxd pokrenuta."
+    },
+    "manual": {
+      "discovering": "Traženje porta za uparivanje…",
+      "stage_mdns": "Pretraga usluge za uparivanje…",
+      "stage_scanning": "Skeniranje portova… {{percent}}%",
+      "stage_probing": "Provera usluge za uparivanje…",
+      "stage_found": "Port za uparivanje je pronađen",
+      "stage_failed": "Port za uparivanje nije pronađen",
+      "found": "Port za uparivanje: {{port}}",
+      "failed": "Nije moguće pronaći port za uparivanje. Proverite da li je Apple TV u režimu uparivanja.",
+      "retry": "Ponovi pretragu"
     },
     "step": {
       "start": {
@@ -303,8 +327,10 @@
       },
       "custom_identifier": {
         "label": "Prilagođeni identifikator paketa:",
-        "placeholder": "Identifikator paketa IPA aplikacije",
-        "alt": "Ostavite prazno da zadržite identifikatore iz IPA datoteke. Identifikatori ekstenzija aplikacije prate prilagođeni identifikator."
+        "placeholder": "Ostavite prazno da zadržite identifikator paketa IPA aplikacije",
+        "tips": "Instalira aplikaciju pod drugim identifikatorom paketa, što registruje još jedan App ID: aplikacija tada stoji pored originalne. Ostavite prazno da zadržite identifikatore iz IPA datoteke.",
+        "tips_external": "Instalira aplikaciju pod drugim identifikatorom paketa, pored originalne. Identifikatori ekstenzija aplikacije prate ga. Ostavite prazno da zadržite identifikatore iz IPA datoteke.",
+        "invalid": "Prilagođeni identifikator paketa nije važeći: koristite samo slova, cifre, crtice i tačke."
       },
       "allow_missing_entitlements": {
         "label": "Dozvoli nedostajuća ovlašćenja",
@@ -313,6 +339,7 @@
     },
     "login_modal": {
       "title": "Prijava na Apple nalog",
+      "setup_2fa_help": "Kako podesiti iPhone kao pouzdani uređaj za 2FA kod?",
       "button": {
         "close": "Zatvori",
         "login": "Prijavi se",
@@ -477,12 +504,25 @@
       "title": "Napredno",
       "update_coreadi": "Ažuriraj CoreADI",
       "update_coreadi_confirm": "Da li ste sigurni da želite da ažurirate CoreADI biblioteke?",
+      "anisette_server": "Anisette server",
+      "anisette_server_default_tag": "Podrazumevani",
+      "anisette_server_tips": "Ostavite prazno za podrazumevani server. Promena servera čini postojeće Anisette podatke nevažećim; resetujte nalog ako zahtevi počnu da otkazuju.",
+      "save": "Sačuvaj",
+      "reset_anisette": "Resetuj Anisette podatke",
+      "reset_anisette_select": "Izaberite nalog",
+      "reset_anisette_empty": "Anisette podaci se resetuju po nalogu. Prvo dodajte Apple ID nalog.",
+      "reset_anisette_confirm": "Da li ste sigurni da želite da resetujete Anisette podatke za {{email}}? Novi identitet uređaja biće kreiran pri sledećem korišćenju, pa se nalog mora ponovo prijaviti.",
+      "reset": "Resetuj",
       "cancel": "Otkaži",
       "confirm": "Potvrdi",
       "toast": {
         "downloading": "Preuzimanje...",
         "success": "Ažuriranje je završeno",
-        "failed": "Ažuriranje nije uspelo"
+        "failed": "Ažuriranje nije uspelo",
+        "reset_success": "Anisette podaci za {{email}} su resetovani",
+        "reset_failed": "Resetovanje nije uspelo",
+        "server_success": "Anisette server je sačuvan",
+        "server_failed": "Čuvanje Anisette servera nije uspelo"
       }
     }
   },
@@ -615,6 +655,34 @@
       "pairable_label": "Tip usluge uređaja spremnog za uparivanje: _remotepairing-manual-pairing._tcp"
     }
   },
+  "addDevice": {
+    "title": "Dodaj novi uređaj",
+    "tabs": {
+      "appletv": "Apple TV",
+      "iphone": "iPhone"
+    },
+    "appletv": {
+      "device_label": "Apple TV uređaj",
+      "ip_placeholder": "npr. 192.168.1.120",
+      "ip_tips": "Apple TV mora biti u režimu uparivanja da bi bio otkriven i povezan; podržana je lokalna IP adresa ili Tailscale IP adresa",
+      "pairing_step1": "Na Apple TV-u otvorite Podešavanja → Daljinski upravljači i uređaji → Aplikacija i uređaji za daljinsko upravljanje da biste ušli u režim uparivanja.",
+      "pairing_step2": "Osvežite listu uređaja i izaberite Apple TV, zatim kliknite na Započni uparivanje.",
+      "no_device": "IP adresa ne odgovara nijednom otkrivenom Apple TV-u. Osvežite listu i izaberite uređaj.",
+      "submit": "Započni uparivanje"
+    },
+    "iphone": {
+      "device_label": "iPhone uređaj",
+      "device_placeholder": "npr. 192.168.1.205, ili izaberite uređaj",
+      "device_tips": "iPhone mora biti otključan da bi bio otkriven i povezan; podržana je lokalna IP adresa ili Tailscale IP adresa",
+      "upload_label": "Otpremi datoteku za uparivanje",
+      "no_device": "Nije moguće pronaći uslugu tunela iPhone-a. iPhone mora biti povezan na Wi-Fi (samo mobilni podaci ne rade); proverite da li je otključan i dostupan na istoj mreži ili preko Tailscale-a.",
+      "submit": "Započni povezivanje"
+    },
+    "toast": {
+      "device_required": "Unesite ili izaberite IP adresu uređaja",
+      "file_required": "Prvo otpremite datoteku za uparivanje"
+    }
+  },
   "laboratory": {
     "title": "Poveži iPhone",
     "tips": {
@@ -622,7 +690,8 @@
       "step2": "Preuzmite <a href=\"https://github.com/jkcoxson/idevice_pair\" target=\"_blank\" class=\"link\">idevice_pair</a>, povežite iPhone i izvezite datoteku za uparivanje u režimu <b>RPPairing</b>.",
       "step3": "Pomoću alata idevice_pair omogućite bežično otklanjanje grešaka.",
       "step4": "Proverite da li je vaš iPhone vidljiv u odeljku <a href=\"/#/tools\" class=\"link\">Alatke</a>.",
-      "step5": "Pouzdan rad automatskog osvežavanja na iPhone-u nije zagarantovan; iPhone mora biti otključan da bi udaljeno osvežavanje pravilno radilo."
+      "step5": "Pouzdan rad automatskog osvežavanja na iPhone-u nije zagarantovan; iPhone mora biti otključan da bi udaljeno osvežavanje pravilno radilo.",
+      "step6": "Osvežavanje radi samo na lokalnoj mreži: preko VPN-a ili Tailscale-a ne može pravilno da se osveži."
     },
     "form": {
       "device_label": "Izaberite odgovarajući uređaj",

@@ -251,6 +251,13 @@ export default {
     });
   },
 
+  deleteManualDevice: (id) => {
+    return request({
+      url: `/api/devices/${id}/manual/delete`,
+      method: "post",
+    });
+  },
+
   refreshApp: (id) => {
     return request({
       url: `/api/apps/${id}/refresh`,
@@ -422,6 +429,29 @@ export default {
       timeout: 600000,
     });
   },
+  resetAnisette: (data) => {
+    return request({
+      url: "/api/settings/reset/anisette",
+      method: "post",
+      timeout: 30000,
+      data,
+    });
+  },
+  getAnisetteServer: () => {
+    return request({
+      url: "/api/settings/anisette/server",
+      method: "get",
+      timeout: 30000,
+    });
+  },
+  setAnisetteServer: (data) => {
+    return request({
+      url: "/api/settings/anisette/server",
+      method: "post",
+      timeout: 30000,
+      data,
+    });
+  },
   importPair: (data) => {
     return request({
       url: "/api/pair/import",
@@ -431,6 +461,16 @@ export default {
         "Content-Type": "multipart/form-data",
       },
       data,
+    });
+  },
+  discoverTunnelPort: (ip) => {
+    return request({
+      url: "/api/pair/tunnel-port",
+      method: "get",
+      timeout: 30000,
+      // The caller shows its own toast on failure; skip the interceptor toast.
+      silent: true,
+      params: { ip },
     });
   },
   scanWireless: () => {

@@ -1,6 +1,6 @@
 ATVLOADLY CHO WINDOWS (BAN NATIVE, KHONG CAN DOCKER/WSL)
 ========================================================
-Phien ban: atvloadly v0.6.2-7-g0cb114d-win + plumesign 2.2.3-patch.8 (Windows x64)
+Phien ban: atvloadly v0.8.0-1-win + plumesign 2.7.1-patch.5 (Windows x64)
 Yeu cau: Windows 10/11 64-bit, PC va Apple TV cung mot mang LAN/Wi-Fi.
 
 1. NOI DUNG THU MUC
@@ -25,7 +25,7 @@ Yeu cau: Windows 10/11 64-bit, PC va Apple TV cung mot mang LAN/Wi-Fi.
   b) Chuot phai firewall-allow.bat > Run as administrator (1 lan). Neu Windows hien
      hop thoai tuong lua khi chay, chon "Allow" cho mang Private.
      Mang Wi-Fi/LAN cua PC phai dat la "Private" (Settings > Network > Properties).
-  c) Chay start.bat. Lan dau se tai ~140MB thu vien anisette tu may chu Apple.
+  c) Chay start.bat. Lan dau se thu tai ~140MB thu vien anisette (tuy chon) tu Apple.
   d) Mo trinh duyet: http://localhost:5533  (tu may khac trong LAN: http://<IP-PC>:5533)
   e) Muon chay ngam + tu khoi dong: chay install-autostart.bat (sau khi da chay start.bat 1 lan).
 
@@ -62,10 +62,10 @@ Yeu cau: Windows 10/11 64-bit, PC va Apple TV cung mot mang LAN/Wi-Fi.
         https://apps.microsoft.com/detail/9np83lwlpz9k
       hoac iTunes cho Windows: https://www.apple.com/itunes/download/win64
     (Apple khong cho phan phoi lai cac thanh phan nay nen khong dong goi san.)
-  - Thu vien anisette (libstoreservicescore.so/libCoreADI.so) la cua Apple nen khong
-    dong goi; script tai truc tiep tu apps.mzstatic.com (giong ban Docker). Neu tai loi,
-    plumesign se dung may chu anisette tu xa (ani.sidestore.io); co the thu lai trong
-    giao dien Settings > Update CoreADI.
+  - Anisette: plumesign 2.7.1 mac dinh dung may chu anisette tu xa (mac-ani.jkcoxson.com),
+    sua loi dang nhap "Authentication SRP error -80045". Thu vien cuc bo cua Apple
+    (libstoreservicescore.so/libCoreADI.so) la tuy chon, khong dong goi; start.bat se thu tai
+    tu apps.mzstatic.com, tai loi cung khong sao. Thu lai trong Settings > Update CoreADI.
   - Nut "khoi dong lai usbmuxd" trong giao dien khong co tac dung tren Windows.
   - Muc "Service status" (avahi-daemon) trong giao dien se trong tren Windows - binh thuong.
   - Antivirus/SmartScreen co the canh bao vi exe chua ky so: chon "More info > Run anyway".

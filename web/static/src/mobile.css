@@ -428,6 +428,29 @@
     overflow-wrap: inherit;
   }
 
+  /* The warning badge tooltip must stay inside the phone viewport. daisyUI
+     anchors a right tooltip at the badge's right edge (left: 100% + tail)
+     and caps it with max-width, which clamps width but not the anchor: the
+     20rem bubble starts at x=133 and runs past the screen, making the whole
+     page scroll sideways. Pin it to the badge's left edge and cap it against
+     the viewport so the bubble fits without widening the page. */
+  .app-container .main-container .atv-indicator-tip::before {
+    left: 0;
+    right: auto;
+    max-width: min(20rem, calc(100vw - 7.5rem));
+  }
+
+}
+
+/* Tablets keep the desktop navbar, but daisyUI anchors every menu to its
+   trigger's left edge, so the rightmost menu (theme) runs past the viewport
+   and adds a page-wide horizontal scrollbar. Anchor the menus to their
+   trigger's right edge instead, as the phone breakpoint already does. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-container > .navbar .dropdown > .dropdown-content {
+    left: auto;
+    right: 0;
+  }
 }
 
 /* mobile-footer-clean-test-v1 */
@@ -444,6 +467,12 @@
 
 /* Account, certificate, and device tables become cards on narrow screens. */
 @media (max-width: 767px) {
+  /* The service-status card is secondary on phones: hide it to keep the
+     sidebar focused on adding and selecting devices. */
+  .app-container .main-container .atv-service-status {
+    display: none;
+  }
+
   .app-container .main-container .atv-account-page {
     min-width: 0;
     width: 100%;

@@ -16,6 +16,7 @@ html[data-theme="light"] {
   --atv-accent: #255bb4;
   --atv-accent-hover: #19468e;
   --atv-accent-soft: #eaf1fc;
+  --atv-accent-soft-hover: #c9dcf5;
   --atv-danger: #a23e4b;
   --atv-danger-hover: #812d3a;
   --atv-danger-soft: #fff1f1;
@@ -39,6 +40,7 @@ html[data-theme="dark"] {
   --atv-accent: #9bc5fa;
   --atv-accent-hover: #c3ddff;
   --atv-accent-soft: #233953;
+  --atv-accent-soft-hover: #16243a;
   --atv-danger: #ffb2b8;
   --atv-danger-hover: #ffe0e3;
   --atv-danger-soft: #422832;
@@ -141,13 +143,28 @@ html[data-theme="dark"] {
   border-radius: 18px;
   border-collapse: separate;
   border-spacing: 0;
-  overflow: hidden;
   background: var(--atv-surface);
   box-shadow: var(--atv-shadow);
 }
 
 .app-container .main-container .table thead {
   background: var(--atv-surface-alt);
+}
+
+.app-container .main-container .table thead th:first-child {
+  border-top-left-radius: 18px;
+}
+
+.app-container .main-container .table thead th:last-child {
+  border-top-right-radius: 18px;
+}
+
+.app-container .main-container .table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 18px;
+}
+
+.app-container .main-container .table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 18px;
 }
 
 .app-container .main-container .table th {
@@ -428,7 +445,6 @@ html[data-theme="dark"] {
 .app-container .main-container .table {
   border-collapse: separate;
   border-spacing: 0;
-  overflow: hidden;
 }
 
 .app-container .main-container .table thead {
@@ -795,10 +811,20 @@ html[data-theme="dark"] {
   gap: 12px;
 }
 
+/* The source line closes the app cell, below the refresh date, on every
+   breakpoint: give it the same breathing room above it whether the cell is
+   the desktop grid or the phone card. */
+.app-container .main-container .table td .atv-app-text > .atv-source-line {
+  margin-top: 10px;
+}
+
 /* Table layout of the installed apps (mobile.css turns them into cards): the
-   source line sits under the app title in the same column. Tracking a source
+   source line sits in the same column as the app title. Tracking a source
    then keeps the column widths, so the Device and Account cells are not
-   squeezed. */
+   squeezed.
+   The app cell follows DOM order: name, version, optional bundle identifier,
+   refresh date, then the source line. Do not pin a child to a fixed grid row:
+   that reordered the date and split the app's identity from its status. */
 @media (min-width: 768px) {
   .app-container .main-container .table td .flex.atv-app-cell {
     display: grid;
@@ -820,8 +846,6 @@ html[data-theme="dark"] {
 
   .app-container .main-container .table td .atv-app-text > .atv-source-line {
     grid-column: 2;
-    grid-row: 4;
-    margin-top: 10px;
     contain: inline-size;
   }
 

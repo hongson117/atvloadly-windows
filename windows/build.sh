@@ -3,8 +3,7 @@
 # portable zip and the NSIS installer.
 #
 # Requirements (Debian/Ubuntu): golang >= 1.25 (or GOTOOLCHAIN=auto), nodejs/npm,
-#   gcc-mingw-w64-x86-64, rustup (stable) with target x86_64-pc-windows-gnu,
-#   cmake, nasm, nsis (makensis), git, python3.
+#   gcc-mingw-w64-x86-64, nsis (makensis), curl, git, python3.
 # Output: windows/dist/atvloadly-setup.exe, windows/dist/atvloadly-windows.zip, SHA256SUMS.txt
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,7 +11,7 @@ WIN="$ROOT/windows"
 DIST="$WIN/dist"
 WORK="$WIN/.work"
 PLUME_REPO="https://github.com/bitxeno/PlumeImpactor"
-PLUME_TAG="v2.2.3-patch.8"
+PLUME_TAG="v2.7.1-patch.5"
 export GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
 export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -22,21 +21,17 @@ echo "==> frontend"
 (cd "$ROOT/web/static" && npm install && npm run build)
 
 echo "==> atvloadly.exe (CGO via mingw-w64: needed by github.com/blacktop/lzfse-cgo)"
-VERSION="$(cd "$ROOT" && git describe --tags --always)-win"
+VERSION="${WIN_VERSION:-0.8.0-1-win}"
 PKG=github.com/bitxeno/atvloadly/internal/app/build
 (cd "$ROOT" && CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 \
   go build -trimpath -ldflags "-w -s -X $PKG.Version=$VERSION -X $PKG.BuildDate=$(date +%F) -X $PKG.Commit=$(git rev-parse HEAD) -X $PKG.Mode=production" \
   -o "$WORK/atvloadly.exe" .)
 
-echo "==> plumesign.exe from $PLUME_REPO $PLUME_TAG (unmodified)"
-if [ ! -d "$WORK/PlumeImpactor" ]; then
-  git clone --branch "$PLUME_TAG" --depth 1 "$PLUME_REPO" "$WORK/PlumeImpactor"
+echo "==> plumesign.exe: official $PLUME_REPO release $PLUME_TAG (unmodified)"
+if [ ! -f "$WORK/plumesign.exe" ]; then
+  curl -fsSL -o "$WORK/plumesign.exe" "$PLUME_REPO/releases/download/$PLUME_TAG/plumesign-windows-x86_64.exe"
 fi
-(cd "$WORK/PlumeImpactor" && \
-  sed -i -E '/^\[workspace\.package\]/,/^\[/ s/^version = ".*"/version = "'"${PLUME_TAG#v}"'"/' Cargo.toml && \
-  cargo build --release -p plumesign --target x86_64-pc-windows-gnu)
-cp "$WORK/PlumeImpactor/target/x86_64-pc-windows-gnu/release/plumesign.exe" "$WORK/plumesign.exe"
-cp "$WORK/PlumeImpactor/LICENSE" "$WORK/PlumeImpactor-LICENSE-MIT.txt"
+curl -fsSL -o "$WORK/PlumeImpactor-LICENSE-MIT.txt" "https://raw.githubusercontent.com/bitxeno/PlumeImpactor/$PLUME_TAG/LICENSE"
 
 common_files() { # $1 = destination dir
   mkdir -p "$1/licenses" "$1/source"
@@ -44,7 +39,7 @@ common_files() { # $1 = destination dir
   cp "$ROOT/LICENSE" "$1/licenses/atvloadly-LICENSE-AGPL3.txt"
   cp "$WORK/PlumeImpactor-LICENSE-MIT.txt" "$1/licenses/"
   cp "$WIN/patches/atvloadly-windows.patch" "$1/source/"
-  printf 'atvloadly source: https://github.com/hongson117/atvloadly-windows (fork of https://github.com/bitxeno/atvloadly), commit %s\r\nplumesign built from: %s tag %s, unmodified, target x86_64-pc-windows-gnu\r\n' \
+  printf 'atvloadly source: https://github.com/bitxeno/atvloadly tag v0.8.0, commit %s + windows/patches/atvloadly-windows.patch\r\nplumesign: official %s release %s (plumesign-windows-x86_64.exe, unmodified)\r\n' \
     "$(cd "$ROOT" && git rev-parse HEAD)" "$PLUME_REPO" "$PLUME_TAG" > "$1/source/SOURCE.txt"
   (cd "$1" && sha256sum atvloadly.exe plumesign.exe > SHA256SUMS.txt)
 }

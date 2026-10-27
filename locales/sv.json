@@ -1,5 +1,10 @@
 {
   "language": "sv",
+  "tray": {
+    "open_browser": "Öppna i webbläsare",
+    "open_log": "Öppna loggfil",
+    "quit": "Avsluta"
+  },
   "common": {
     "loading": "Laddar…",
     "button": {
@@ -50,7 +55,6 @@
   },
   "home": {
     "heading": {
-      "pairable_devices": "Enheter som kan parkopplas",
       "paired_devices": "Parkopplade enheter",
       "service_status": "Tjänststatus",
       "installed_app": "Installerade appar"
@@ -82,10 +86,19 @@
       "update_failed": "Installationen av {{version}} misslyckades och görs inte om automatiskt. Använd Uppgradera för att försöka igen."
     },
     "sidebar": {
+      "add_device": {
+        "title": "Lägg till ny enhet",
+        "subtitle": "Anslut AppleTV eller iPhone"
+      },
       "device_status": {
         "pairable": "Kan parkopplas",
         "paired": "Parkopplad",
-        "unpaired": "Inte parkopplad"
+        "unpaired": "Inte parkopplad",
+        "added": "Tillagd",
+        "ip_badge": "IP",
+        "forget": "Ta bort",
+        "forget_confirm": "Bekräfta",
+        "forget_done": "Enheten har glömts"
       },
       "tips": {
         "no_paired_devices": "Inga parkopplade enheter",
@@ -152,6 +165,17 @@
       "pin_incorrect": "Fel PIN-kod",
       "pair_error": "Parkopplingen misslyckades. Se konsolen för mer information.",
       "no_device_found": "Enheten hittades inte. Kontrollera att tjänsten usbmuxd körs."
+    },
+    "manual": {
+      "discovering": "Söker parkopplingsport…",
+      "stage_mdns": "Slår upp parkopplingstjänsten…",
+      "stage_scanning": "Skannar portar… {{percent}}%",
+      "stage_probing": "Verifierar parkopplingstjänsten…",
+      "stage_found": "Parkopplingsport hittad",
+      "stage_failed": "Parkopplingsport hittades inte",
+      "found": "Parkopplingsport: {{port}}",
+      "failed": "Kunde inte hitta parkopplingsporten. Kontrollera att Apple TV:n är i parkopplingsläge.",
+      "retry": "Sök igen"
     },
     "step": {
       "start": {
@@ -303,8 +327,10 @@
       },
       "custom_identifier": {
         "label": "Anpassat paket-ID:",
-        "placeholder": "IPA-filens paket-ID",
-        "alt": "Lämna tomt för att behålla IPA-filens paket-ID:n. Apptilläggens paket-ID:n följer det anpassade paket-ID:t."
+        "placeholder": "Lämna tomt för att behålla IPA-filens paket-ID",
+        "tips": "Installerar appen under ett andra paket-ID, vilket registrerar ett andra App ID: appen ligger då bredvid den ursprungliga. Lämna tomt för att behålla IPA-filens paket-ID:n.",
+        "tips_external": "Installerar appen under ett andra paket-ID, bredvid den ursprungliga. Apptilläggens paket-ID:n följer det. Lämna tomt för att behålla IPA-filens paket-ID:n.",
+        "invalid": "Det anpassade paket-ID:t är ogiltigt: använd bara bokstäver, siffror, bindestreck och punkter."
       },
       "allow_missing_entitlements": {
         "label": "Tillåt saknade entitlements",
@@ -313,6 +339,7 @@
     },
     "login_modal": {
       "title": "Logga in på ett Apple-konto",
+      "setup_2fa_help": "Hur sätter man upp en iPhone som betrodd enhet för 2FA?",
       "button": {
         "close": "Stäng",
         "login": "Logga in",
@@ -477,12 +504,25 @@
       "title": "Avancerat",
       "update_coreadi": "Uppdatera CoreADI",
       "update_coreadi_confirm": "Vill du verkligen uppdatera CoreADI-biblioteken?",
+      "anisette_server": "Anisette-server",
+      "anisette_server_default_tag": "Standard",
+      "anisette_server_tips": "Lämna tomt för att använda standardservern. Byt av server gör befintlig Anisette-data ogiltig; återställ kontot om anropen börjar misslyckas.",
+      "save": "Spara",
+      "reset_anisette": "Återställ Anisette-data",
+      "reset_anisette_select": "Välj ett konto",
+      "reset_anisette_empty": "Anisette-data återställs per konto. Lägg till ett Apple ID-konto först.",
+      "reset_anisette_confirm": "Vill du verkligen återställa Anisette-data för {{email}}? En ny enhetsidentitet skapas vid nästa användning, så kontot måste logga in igen.",
+      "reset": "Återställ",
       "cancel": "Avbryt",
       "confirm": "Bekräfta",
       "toast": {
         "downloading": "Laddar ned…",
         "success": "Uppdateringen är klar",
-        "failed": "Uppdateringen misslyckades"
+        "failed": "Uppdateringen misslyckades",
+        "reset_success": "Anisette-data för {{email}} har återställts",
+        "reset_failed": "Återställningen misslyckades",
+        "server_success": "Anisette-servern har sparats",
+        "server_failed": "Det gick inte att spara Anisette-servern"
       }
     }
   },
@@ -612,6 +652,34 @@
       "pairable_label": "Tjänstetyp för parkopplingsbara enheter: _remotepairing-manual-pairing._tcp"
     }
   },
+  "addDevice": {
+    "title": "Lägg till ny enhet",
+    "tabs": {
+      "appletv": "Apple TV",
+      "iphone": "iPhone"
+    },
+    "appletv": {
+      "device_label": "Apple TV-enhet",
+      "ip_placeholder": "t.ex. 192.168.1.120",
+      "ip_tips": "Apple TV:n måste vara i parkopplingsläge för att kunna hittas och anslutas; stöder en lokal IP-adress eller en Tailscale IP-adress",
+      "pairing_step1": "Öppna Inställningar → Fjärrkontroller och enheter → Fjärrapp och enheter på Apple TV:n för att gå in i parkopplingsläge.",
+      "pairing_step2": "Uppdatera enhetslistan och välj Apple TV:n, klicka sedan på Starta parkoppling.",
+      "no_device": "IP-adressen matchar ingen hittad Apple TV. Uppdatera listan och välj en enhet.",
+      "submit": "Starta parkoppling"
+    },
+    "iphone": {
+      "device_label": "iPhone-enhet",
+      "device_placeholder": "t.ex. 192.168.1.205, eller välj en enhet",
+      "device_tips": "iPhone måste låsas upp för att kunna hittas och anslutas; stöder en lokal IP-adress eller en Tailscale IP-adress",
+      "upload_label": "Ladda upp parkopplingsfil",
+      "no_device": "Kunde inte hitta iPhone-tunneltjänsten. iPhone måste vara ansluten till Wi-Fi (endast mobildata fungerar inte); kontrollera att den är upplåst och nåbar i samma nätverk eller via Tailscale.",
+      "submit": "Starta anslutning"
+    },
+    "toast": {
+      "device_required": "Ange eller välj en enhets IP-adress",
+      "file_required": "Ladda upp en parkopplingsfil först"
+    }
+  },
   "laboratory": {
     "title": "Anslut iPhone",
     "tips": {
@@ -619,7 +687,8 @@
       "step2": "Ladda ned <a href=\"https://github.com/jkcoxson/idevice_pair\" target=\"_blank\" class=\"link\">idevice_pair</a>, anslut din iPhone och exportera en parkopplingsfil i läget <b>RPPairing</b>.",
       "step3": "Använd idevice_pair för att aktivera trådlös felsökning.",
       "step4": "Kontrollera att din iPhone går att hitta under <a href=\"/#/tools\" class=\"link\">Verktyg</a>.",
-      "step5": "Automatisk uppdatering på iPhone är inte garanterat tillförlitlig. Enheten måste vara upplåst för att fjärruppdatering ska fungera korrekt."
+      "step5": "Automatisk uppdatering på iPhone är inte garanterat tillförlitlig. Enheten måste vara upplåst för att fjärruppdatering ska fungera korrekt.",
+      "step6": "Uppdatering fungerar bara i det lokala nätverket: den kan inte uppdateras korrekt via VPN eller Tailscale."
     },
     "form": {
       "device_label": "Välj motsvarande enhet",

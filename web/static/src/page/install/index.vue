@@ -215,9 +215,14 @@
               />
             </div>
 
-            <div class="form-control" v-if="isExternal">
+            <div class="form-control">
               <label class="label" for="install-custom-identifier">
                 <span class="label-text">{{ $t("install.form.custom_identifier.label") }}</span>
+                <div class="tooltip" :data-tip="isExternal
+                  ? $t('install.form.custom_identifier.tips_external')
+                  : $t('install.form.custom_identifier.tips')">
+                  <div class="w-4 h-4 text-secondary-content"><HelpIcon /></div>
+                </div>
               </label>
               <input
                 id="install-custom-identifier"
@@ -231,11 +236,6 @@
                 :placeholder="customIdentifierPlaceholder"
                 v-model.lazy.trim="form.custom_identifier"
               />
-              <label class="label" for="install-custom-identifier">
-                <span class="label-text-alt block whitespace-normal break-words">{{
-                  $t("install.form.custom_identifier.alt")
-                }}</span>
-              </label>
             </div>
 
             <div class="form-control">
@@ -556,6 +556,19 @@ function sourceBuildKey(selection) {
   return selection ? JSON.stringify([selection.kind, selection.url, selection.build.id]) : "";
 }
 
+// bundleIdentifierPattern is the bundle identifier the server accepts for a
+// custom identifier: dot separated, non-empty parts of letters, digits and
+// hyphens (see internal/signing/appcheck.ValidateBundleIdentifier).
+const bundleIdentifierPattern = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/;
+
+// validCustomIdentifier mirrors the server check, which refuses an invalid
+// identifier only when the install is queued. The install page validates it
+// first so the user is not sent to a failing install. An empty value is valid:
+// it keeps the bundle identifiers of the IPA.
+function validCustomIdentifier(id) {
+  return id === "" || (id.length <= 255 && bundleIdentifierPattern.test(id));
+}
+
 export default {
   components: { SigningIssueList, SigningPlan, SourcePicker },
   data() {
@@ -571,10 +584,24 @@ export default {
       device: {},
       loading: false,
       websock: null,
+      // Generation of the current install attempt. Every release of the
+      // attempt bumps it, and guards after each await compare against it so
+      // an upload or check that finishes late never opens a socket or sends
+      // a stale install.
+      submitSeq: 0,
+      // Generation counters like submitSeq. They live in data() instead of
+      // created() because the test harness instantiates the component via
+      // data() alone.
+      uploadSeq: 0,
+      checkSeq: 0,
       accounts: [],
       installedApps: [],
       recommendedAccount: "",
       recommendedIdentityId: 0,
+      // Bundle identifier of the chosen IPA, read in the browser when a file is
+      // picked (Apple ID installs never reach the server before the install, so
+      // it is the only source there). Previews the identifier the app keeps.
+      ipaBundleIdentifier: "",
       signingModes: [appleIDMode, externalMode],
       signing: {
         mode: appleIDMode,
@@ -606,9 +633,9 @@ export default {
         password: "",
         custom_name: "",
         remove_extensions: false,
-        // Main bundle identifier of the signed app (external mode); empty
-        // keeps the identifiers of the IPA. Synced on change, not on input,
-        // so that the compatibility check runs once per edit.
+        // Main bundle identifier of the signed app; empty keeps the identifiers
+        // of the IPA. Synced on change, not on input, so that the compatibility
+        // check runs once per edit.
         custom_identifier: "",
         auto_update: false,
       },
@@ -678,8 +705,13 @@ export default {
       const check = this.signing.check;
       return check ? summarizePlan(check.plan, check.blocking) : null;
     },
+    // The placeholder previews the bundle identifier the app would keep: the
+    // one read from the chosen IPA, else the one of the uploaded IPA or of the
+    // last compatibility check (external mode prepares the IPA on the server),
+    // else the generic hint.
     customIdentifierPlaceholder() {
-      return this.signing.uploaded?.bundle_identifier ||
+      return this.ipaBundleIdentifier ||
+        this.signing.uploaded?.bundle_identifier ||
         this.signing.check?.plan?.main_bundle_id ||
         this.$t("install.form.custom_identifier.placeholder");
     },
@@ -741,8 +773,6 @@ export default {
   },
   created() {
     this.id = this.$route.params.id;
-    this.uploadSeq = 0;
-    this.checkSeq = 0;
     // Source build of the external IPA prepared or being prepared; empty for
     // an uploaded file.
     this.externalIpaKey = "";
@@ -754,7 +784,9 @@ export default {
     this.fetchData();
   },
   unmounted() {
-    this.closeWebSocket();
+    // A submission may still be uploading or checking with no socket open:
+    // release it so its guards return before opening a socket or sending.
+    this.releaseAttempt();
     this.stopUpdateLog();
     // Drops the external IPA, including one still being uploaded or
     // downloaded, unless a running installation owns it.
@@ -994,6 +1026,10 @@ export default {
         return;
       }
       const external = _this.isExternal;
+      if (!validCustomIdentifier(_this.form.custom_identifier.trim())) {
+        toast.error(this.$t("install.form.custom_identifier.invalid"));
+        return;
+      }
       if (_this.installMode === "source" && !_this.sourceSelection) {
         toast.error(this.$t("install.form.source.select_build"));
         return;
@@ -1014,14 +1050,13 @@ export default {
       _this.stopUpdateLog();
       _this.startUpdateLog();
       _this.log.output += "checking device status...\n";
-      let socket;
+      // The previous attempt leaves its socket on this.websock: release it
+      // before the long upload/check phase so its late onclose cannot end
+      // this attempt, and no idle socket is left behind to leak.
+      _this.releaseAttempt();
+      const submit = _this.submitSeq;
+      const isStale = () => submit !== _this.submitSeq || !_this.loading;
       try {
-        const connected = _this.initWebSocket();
-        socket = _this.websock;
-        await connected;
-        if (socket !== _this.websock || !_this.loading) {
-          return;
-        }
         _this.log.output += `connection mode: ${_this.device.connection}\n`;
         if (_this.device.connection === "Lockdown") {
           _this.log.output += `product type: ${_this.device.product_type}\n`;
@@ -1029,10 +1064,10 @@ export default {
           _this.log.output += `developer mode: ${_this.device.developer_mode_status ? "enabled" : "disabled"}\n`;
           _this.log.output += `personalized image: ${_this.device.personalized_image_mounted ? "mounted" : "not mounted"}\n`;
 
-          await _this.checkAfcService(_this.id, socket);
+          await _this.checkAfcService(_this.id, isStale);
         }
 
-        if (socket !== _this.websock || !_this.loading) {
+        if (isStale()) {
           return;
         }
         let ipa;
@@ -1085,7 +1120,15 @@ export default {
             version: build.version,
           };
         }
-        if (socket !== _this.websock || !_this.loading) {
+        if (isStale()) {
+          return;
+        }
+        // Connect the install socket only when ready to send the install
+        // request. Uploading a large IPA leaves the socket idle for minutes
+        // with zero traffic, and reverse proxies or routers close idle
+        // sockets, aborting the install after the upload finishes.
+        await _this.initWebSocket();
+        if (isStale()) {
           return;
         }
         _this.ipa = ipa;
@@ -1104,7 +1147,7 @@ export default {
             version: _this.ipa.version,
             custom_name: _this.form.custom_name.trim(),
             remove_extensions: _this.form.remove_extensions,
-            custom_identifier: external ? _this.form.custom_identifier : "",
+            custom_identifier: _this.form.custom_identifier,
             signing_mode: _this.signing.mode,
             signing_identity_id: external ? Number(_this.signing.identityId) : 0,
             allow_missing_entitlements: external && _this.signing.allowMissingEntitlements,
@@ -1117,7 +1160,7 @@ export default {
         _this.certRevoke.payload = external ? null : payload;
         _this.websocketsend(1, payload);
       } catch (error) {
-        if ((socket && socket !== _this.websock) || !_this.loading) {
+        if (isStale()) {
           return;
         }
         console.log(error);
@@ -1139,6 +1182,7 @@ export default {
       this.installMode = mode;
       this.files = [];
       this.ipaUrl = "";
+      this.ipaBundleIdentifier = "";
       this.sourceInitial = null;
       this.sourceSelection = null;
       // The external IPA and the values prefilled for it belonged to the
@@ -1164,6 +1208,7 @@ export default {
       this.sourceSelection = selection;
       this.recommendedAccount = "";
       this.recommendedIdentityId = 0;
+      this.ipaBundleIdentifier = "";
       this.clearPrefilled();
       if (!selection) {
         if (this.isExternal) {
@@ -1177,10 +1222,22 @@ export default {
       // identifier.
       const url = selection.url.toLowerCase();
       const bundleId = selection.build.bundle_id;
+      // A source build names its own bundle identifier, which the placeholder
+      // previews for an Apple ID install too.
+      this.ipaBundleIdentifier = bundleId || "";
       const isSameSource = (a) => a.udid === this.device.udid && a.source.url.toLowerCase() === url;
       const candidates = this.installedApps.filter(isSameSource).concat(
         bundleId ? this.installedApps.filter((a) => a.bundle_identifier === bundleId) : [],
       );
+      // The same IPA may be installed twice, with and without a custom bundle
+      // identifier. Prefer the record matching the identifier already typed,
+      // else the plain one, so the recommendation is the app the user means.
+      const typed = this.form.custom_identifier.trim();
+      const preferred = (a) => {
+        if (typed && a.custom_identifier === typed) return 0;
+        return a.custom_identifier ? 2 : 1;
+      };
+      candidates.sort((a, b) => preferred(a) - preferred(b));
       let matched = false;
       for (const app of candidates) {
         if (this.recommendApp(app)) {
@@ -1208,6 +1265,7 @@ export default {
       this.files = e.target.files;
       this.recommendedAccount = "";
       this.recommendedIdentityId = 0;
+      this.ipaBundleIdentifier = "";
       this.clearPrefilled();
       this.cancelExternalIpa();
       if (this.files.length > 0) {
@@ -1229,6 +1287,9 @@ export default {
             const bundleId = parseBundleIdFromPlist(plistData);
 
             if (bundleId) {
+              // The placeholder previews it, and an Apple ID install reads it
+              // here: the server sees the IPA only once the install is queued.
+              this.ipaBundleIdentifier = bundleId;
               for (let app of this.installedApps) {
                 if (app.bundle_identifier !== bundleId) {
                   continue;
@@ -1274,6 +1335,10 @@ export default {
       this.recommendedAccount = account.email;
       this.form.account = account.email;
       this.prefill("custom_name", app.custom_name);
+      // An Apple ID install under a custom identifier is a different app from
+      // the one installed without it: reusing the identifier reinstalls the
+      // app the user picked instead of creating a second one.
+      this.prefill("custom_identifier", app.custom_identifier);
       return true;
     },
     // recommendIdentity preselects the identity that signed an earlier
@@ -1344,6 +1409,14 @@ export default {
           this.websocketclose(e);
         };
       });
+    },
+    // releaseAttempt abandons the attempt in flight: later uploads or
+    // checks see a bumped generation and return before opening a socket or
+    // sending. The previous attempt's socket, if any, is closed first so
+    // its late onclose cannot end the next attempt.
+    releaseAttempt() {
+      this.submitSeq++;
+      this.closeWebSocket();
     },
     closeWebSocket() {
       const socket = this.websock;
@@ -1475,7 +1548,7 @@ export default {
         data = JSON.stringify(data);
       }
       const json = JSON.stringify({ t: t, d: data });
-      if (_this.websock.readyState !== WebSocket.OPEN) {
+      if (!_this.websock || _this.websock.readyState !== WebSocket.OPEN) {
         throw new Error(this.$t("install.toast.connection_closed"));
       }
       _this.websock.send(json);
@@ -1490,16 +1563,19 @@ export default {
       this.onInstallFinished();
       toast.error(message);
     },
-    async checkAfcService(id, socket) {
+    // checkAfcService probes the AFC service over REST before the install
+    // socket opens. isStale reports whether this attempt was released while
+    // the probe was in flight.
+    async checkAfcService(id, isStale) {
       let _this = this;
       try {
         await api.checkAfcService(id);
-        if (socket !== _this.websock || !_this.loading) {
+        if (isStale()) {
           return;
         }
         _this.log.output += "afc service: OK!\n";
       } catch (error) {
-        if (socket === _this.websock && _this.loading) {
+        if (!isStale()) {
           _this.log.output += `afc service: Failed!\n`;
         }
         throw error;

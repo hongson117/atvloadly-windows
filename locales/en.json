@@ -1,5 +1,10 @@
 {
     "language": "en",
+    "tray": {
+        "open_browser": "Open in Browser",
+        "open_log": "Open Log File",
+        "quit": "Quit"
+    },
     "common": {
         "loading": "Loading...",
         "button": {
@@ -50,7 +55,6 @@
     },
     "home": {
         "heading": {
-            "pairable_devices": "Pairable Devices",
             "paired_devices": "Paired Devices",
             "service_status": "Service Status",
             "installed_app": "Installed Apps"
@@ -82,10 +86,19 @@
             "update_failed": "Installing {{version}} failed and is not retried automatically. Use Update to retry."
         },
         "sidebar": {
+            "add_device": {
+                "title": "Add New Device",
+                "subtitle": "Connect AppleTV or iPhone"
+            },
             "device_status": {
                 "pairable": "Pairable",
                 "paired": "Paired",
-                "unpaired": "Unpaired"
+                "unpaired": "Unpaired",
+                "added": "Added",
+                "ip_badge": "IP",
+                "forget": "Delete",
+                "forget_confirm": "Confirm",
+                "forget_done": "Device forgotten"
             },
             "tips": {
                 "no_paired_devices": "No connected devices",
@@ -152,6 +165,17 @@
             "pin_incorrect": "Incorrect PIN code",
             "pair_error": "Pairing error. Please check the console for more information.",
             "no_device_found": "Device not found. Please make sure the usbmuxd service is running."
+        },
+        "manual": {
+            "discovering": "Discovering the pairing port…",
+            "stage_mdns": "Looking up the pairing service…",
+            "stage_scanning": "Scanning ports… {{percent}}%",
+            "stage_probing": "Verifying the pairing service…",
+            "stage_found": "Pairing port found",
+            "stage_failed": "Pairing port not found",
+            "found": "Pairing port: {{port}}",
+            "failed": "Could not find the pairing port. Make sure the Apple TV is in pairing mode.",
+            "retry": "Rediscover"
         },
         "step": {
             "start": {
@@ -304,8 +328,10 @@
             },
             "custom_identifier": {
                 "label": "Custom bundle identifier:",
-                "placeholder": "Bundle identifier of the IPA",
-                "alt": "Leave empty to keep the identifiers of the IPA. The identifiers of the app extensions follow the custom identifier."
+                "placeholder": "Leave blank to keep the IPA's bundle identifier",
+                "tips": "Installs the app under a second bundle identifier, which registers another App ID: the app then sits next to the original one. Leave empty to keep the identifiers of the IPA.",
+                "tips_external": "Installs the app under a second bundle identifier, next to the original one. The identifiers of the app extensions follow it. Leave empty to keep the identifiers of the IPA.",
+                "invalid": "The custom bundle identifier is invalid: use only letters, digits, hyphens and dots."
             },
             "allow_missing_entitlements": {
                 "label": "Allow missing entitlements",
@@ -315,6 +341,7 @@
         ,
         "login_modal": {
             "title": "Login Apple Account",
+            "setup_2fa_help": "How to set up an iPhone as a trusted device for 2FA?",
             "button": {
                 "close": "Close",
                 "login": "Login",
@@ -480,12 +507,25 @@
                 "title": "Advanced",
                 "update_coreadi": "Update CoreADI",
                 "update_coreadi_confirm": "Are you sure you want update the CoreADI libraries?",
+                "anisette_server": "Anisette Server",
+                "anisette_server_default_tag": "Default",
+                "anisette_server_tips": "Leave empty to use the default server. Changing the server invalidates existing anisette data; reset the account if requests start failing.",
+                "save": "Save",
+                "reset_anisette": "Reset Anisette Data",
+                "reset_anisette_select": "Select an account",
+                "reset_anisette_empty": "Anisette data is reset per account. Add an Apple ID account first.",
+                "reset_anisette_confirm": "Are you sure you want to reset the Anisette data of {{email}}? A new device identity is generated on its next use, so the account must log in again.",
+                "reset": "Reset",
                 "cancel": "Cancel",
                 "confirm": "Confirm",
                 "toast": {
                     "downloading": "Downloading...",
                     "success": "Update completed",
-                    "failed": "Update failed"
+                    "failed": "Update failed",
+                    "reset_success": "Anisette data of {{email}} reset",
+                    "reset_failed": "Reset failed",
+                    "server_success": "Anisette server saved",
+                    "server_failed": "Saving anisette server failed"
                 }
             }
     },
@@ -616,6 +656,34 @@
             "pairable_label": "Pairable device service type: _remotepairing-manual-pairing._tcp"
         }
     },
+    "addDevice": {
+        "title": "Add New Device",
+        "tabs": {
+            "appletv": "Apple TV",
+            "iphone": "iPhone"
+        },
+        "appletv": {
+            "device_label": "Apple TV Device",
+            "ip_placeholder": "e.g. 192.168.1.120",
+            "ip_tips": "The Apple TV must be in pairing mode to be discovered and connected; supports a LAN IP address or a Tailscale IP address",
+            "pairing_step1": "On the Apple TV, open Settings → Remotes and Devices → Remote App and Devices to enter pairing mode.",
+            "pairing_step2": "Refresh the device list and pick the Apple TV, then click Start Pairing.",
+            "no_device": "The IP address does not match a discovered Apple TV. Refresh the list and pick a device.",
+            "submit": "Start Pairing"
+        },
+        "iphone": {
+            "device_label": "iPhone Device",
+            "device_placeholder": "e.g. 192.168.1.205, or pick a device",
+            "device_tips": "The iPhone must be unlocked to be discovered and connected; supports a LAN IP address or a Tailscale IP address",
+            "upload_label": "Upload Pairing File",
+            "no_device": "Could not find the iPhone tunnel service. Make sure the iPhone is unlocked and connected to Wi-Fi (cellular data does not work), and reachable on the same network or over Tailscale.",
+            "submit": "Start Connecting"
+        },
+        "toast": {
+            "device_required": "Please enter or select a device IP address",
+            "file_required": "Please upload a pairing file first"
+        }
+    },
     "laboratory": {
         "title": "Connect iPhone",
         "tips": {
@@ -623,7 +691,8 @@
             "step2": "Please download <a href=\"https://github.com/jkcoxson/idevice_pair\" target=\"_blank\" class=\"link\">idevice_pair</a>, connect your iPhone, and export the <b>RPPairing</b> mode Pairing File.",
             "step3": "Please use idevice_pair to enable Wireless Debugging functionality.",
             "step4": "Please ensure that your iPhone device is discoverable in the <a href=\"/#/tools\" class=\"link\">Tools</a>.",
-            "step5": "Automatic refresh on iPhone is not guaranteed to be reliable; the iPhone must be unlocked for remote refresh to work properly."
+            "step5": "Automatic refresh on iPhone is not guaranteed to be reliable; the iPhone must be unlocked for remote refresh to work properly.",
+            "step6": "Refresh works on the local network only: it cannot refresh properly over VPN or Tailscale."
         },
         "form": {
             "device_label": "Select Corresponding Device",

@@ -1,6 +1,6 @@
 ATVLOADLY FOR WINDOWS - INSTALLER EDITION
 =========================================
-atvloadly v0.6.2-7-g0cb114d-win + plumesign 2.2.3-patch.8 (Windows x64)
+atvloadly v0.8.0-1-win + plumesign 2.7.1-patch.5 (Windows x64)
 Community Windows build of bitxeno/atvloadly (upstream only ships Linux/Docker).
 
 USAGE
@@ -48,9 +48,10 @@ MICROSOFT DEFENDER / ANTIVIRUS
 NOTES
 - The legacy connection (tvOS 16 and older, USB) needs Apple Mobile Device Service: install the
   "Apple Devices" app from the Microsoft Store: https://apps.microsoft.com/detail/9np83lwlpz9k
-- The Apple anisette libraries are downloaded from apps.mzstatic.com and run by the ELF loader
-  built into plumesign. If download/loading fails, plumesign uses a remote anisette server
-  (ani.sidestore.io). Retry: Settings > Update CoreADI in atvloadly, or
+- Anisette: plumesign 2.7.1 uses a remote anisette server (mac-ani.jkcoxson.com) by default.
+  This fixes the Apple login error "Authentication SRP error -80045" of older builds.
+  Apple's local anisette libraries (~140MB, apps.mzstatic.com) are OPTIONAL and no longer
+  needed to log in. To download them anyway: Settings > Update CoreADI in atvloadly, or
   powershell -ExecutionPolicy Bypass -File "<install dir>\scripts\setup-anisette.ps1"
 - Tested on real Windows: Apple TV discovery, pairing, app install and anisette all work.
   If you hit a problem, see %LOCALAPPDATA%\atvloadly\app.log.

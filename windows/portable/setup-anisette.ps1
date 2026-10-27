@@ -1,7 +1,7 @@
 # Tai thu vien anisette (libstoreservicescore.so, libCoreADI.so) tu APK Apple Music
 # chinh thuc cua Apple (giong Dockerfile cua atvloadly), giai nen vao
 # %APPDATA%\PlumeImpactor\lib\x86_64 - noi plumesign.exe doc.
-# Neu khong co, plumesign se tu dung may chu anisette tu xa (ani.sidestore.io).
+# Neu khong co, plumesign 2.7.1 van dung may chu anisette tu xa (mac-ani.jkcoxson.com) - thu vien nay la tuy chon.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $dest = Join-Path $env:APPDATA 'PlumeImpactor\lib\x86_64'

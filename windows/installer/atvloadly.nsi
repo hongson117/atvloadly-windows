@@ -5,8 +5,8 @@ ManifestDPIAware true
 SetCompressor /SOLID lzma
 
 !define APPNAME "atvloadly"
-!define APPVER "0.6.2.7"
-!define APPVERSTR "0.6.2-7-win"
+!define APPVER "0.8.0.1"
+!define APPVERSTR "0.8.0-1-win"
 !define PUBLISHER "Community Windows build of bitxeno/atvloadly"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\atvloadly"
 !define STOREURL "ms-windows-store://pdp/?ProductId=9NP83LWLPZ9K"
@@ -123,14 +123,14 @@ LangString S_AddingFirewall ${EN} "Adding Windows Firewall rules..."
 LangString S_AddingFirewall ${VI} "Đang thêm luật tường lửa Windows..."
 LangString S_FirewallWarn ${EN} "Warning: netsh returned code $0 - you may need to open the firewall manually."
 LangString S_FirewallWarn ${VI} "Cảnh báo: netsh trả về mã $0 - có thể cần mở tường lửa thủ công."
-LangString S_SecAnisette ${EN} "Download Apple's anisette libraries (~140MB)"
-LangString S_SecAnisette ${VI} "Tải thư viện anisette của Apple (~140MB)"
+LangString S_SecAnisette ${EN} "(Optional, not needed) Download Apple's anisette libraries (~140MB)"
+LangString S_SecAnisette ${VI} "(Tùy chọn, không cần) Tải thư viện anisette của Apple (~140MB)"
 LangString S_DlAnisette ${EN} "Downloading anisette libraries (a PowerShell window shows progress)..."
 LangString S_DlAnisette ${VI} "Đang tải thư viện anisette (cửa sổ PowerShell hiển thị tiến độ)..."
 LangString S_AnisetteFailLog ${EN} "Could not download anisette libraries (code: $0)."
 LangString S_AnisetteFailLog ${VI} "Không tải được thư viện anisette (mã: $0)."
-LangString S_AnisetteFailMsg ${EN} "Could not download Apple's anisette libraries.$\r$\n$\r$\natvloadly still works: plumesign will use a remote anisette server (ani.sidestore.io).$\r$\nYou can retry later in atvloadly: Settings > Update CoreADI."
-LangString S_AnisetteFailMsg ${VI} "Không tải được thư viện anisette của Apple.$\r$\n$\r$\natvloadly vẫn hoạt động: plumesign sẽ dùng máy chủ anisette từ xa (ani.sidestore.io).$\r$\nCó thể thử lại sau trong atvloadly: Settings > Update CoreADI."
+LangString S_AnisetteFailMsg ${EN} "Could not download Apple's anisette libraries.$\r$\n$\r$\natvloadly still works: plumesign uses a remote anisette server (mac-ani.jkcoxson.com).$\r$\nYou can retry later in atvloadly: Settings > Update CoreADI."
+LangString S_AnisetteFailMsg ${VI} "Không tải được thư viện anisette của Apple.$\r$\n$\r$\natvloadly vẫn hoạt động: plumesign dùng máy chủ anisette từ xa (mac-ani.jkcoxson.com).$\r$\nCó thể thử lại sau trong atvloadly: Settings > Update CoreADI."
 LangString S_AnisetteOk ${EN} "Anisette libraries installed to %APPDATA%\PlumeImpactor\lib\x86_64"
 LangString S_AnisetteOk ${VI} "Đã cài thư viện anisette vào %APPDATA%\PlumeImpactor\lib\x86_64"
 LangString S_SecDesktop ${EN} "Desktop shortcut"
@@ -143,8 +143,8 @@ LangString S_DescFirewall ${EN} "Allow web port ${PORT}/TCP and mDNS 5353/UDP (A
 LangString S_DescFirewall ${VI} "Cho phép cổng web ${PORT}/TCP và mDNS 5353/UDP (tìm Apple TV) trên mạng Private."
 LangString S_DescDefender ${EN} "Add Defender exclusions for the install folder and %APPDATA%\PlumeImpactor so Defender does not quarantine plumesign.exe / the anisette libraries. Uninstalling removes these exclusions."
 LangString S_DescDefender ${VI} "Thêm loại trừ Defender cho thư mục cài đặt và %APPDATA%\PlumeImpactor, tránh Defender cách ly plumesign.exe / thư viện anisette. Gỡ cài đặt sẽ xóa loại trừ này."
-LangString S_DescAnisette ${EN} "Download the Apple Music APK from Apple's servers and extract libstoreservicescore.so/libCoreADI.so into %APPDATA%\PlumeImpactor. If skipped, plumesign uses remote anisette."
-LangString S_DescAnisette ${VI} "Tải Apple Music APK từ máy chủ Apple và lấy libstoreservicescore.so/libCoreADI.so vào %APPDATA%\PlumeImpactor. Nếu bỏ qua, plumesign dùng anisette từ xa."
+LangString S_DescAnisette ${EN} "Optional: download libstoreservicescore.so/libCoreADI.so from Apple's Apple Music APK into %APPDATA%\PlumeImpactor. Not needed: plumesign 2.7.1 signs in via a remote anisette server."
+LangString S_DescAnisette ${VI} "Tùy chọn: tải libstoreservicescore.so/libCoreADI.so từ Apple Music APK vào %APPDATA%\PlumeImpactor. Không cần: plumesign 2.7.1 đăng nhập qua máy chủ anisette từ xa."
 LangString S_DescDesktop ${EN} "Create an atvloadly icon on the Desktop."
 LangString S_DescDesktop ${VI} "Tạo biểu tượng atvloadly trên Desktop."
 LangString S_DescAutostart ${EN} "Run atvloadly in the background at every sign-in (needed to auto-renew apps every 7 days)."
@@ -288,14 +288,15 @@ Section "$(S_SecFirewall)" SecFirewall
 SectionEnd
 
 
-Section "$(S_SecAnisette)" SecAnisette
+Section /o "$(S_SecAnisette)" SecAnisette
+  ; 0.8.0-1: plumesign 2.7.1 uses a remote anisette server (mac-ani.jkcoxson.com) by default;
+  ; local Apple libs are optional and no longer needed for login.
   DetailPrint "$(S_DlAnisette)"
   ClearErrors
   ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\scripts\setup-anisette.ps1"' $0
   ${If} ${Errors}
   ${OrIf} $0 != 0
     DetailPrint "$(S_AnisetteFailLog)"
-    MessageBox MB_ICONEXCLAMATION "$(S_AnisetteFailMsg)" /SD IDOK
   ${Else}
     DetailPrint "$(S_AnisetteOk)"
   ${EndIf}

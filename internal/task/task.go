@@ -28,6 +28,8 @@ type Task struct {
 	InstallingApps  sync.Map
 	InstallAppQueue chan TaskItem
 	chExitQueue     chan bool
+	queueStartOnce  sync.Once
+	queueStopOnce   sync.Once
 	InvalidAccounts map[string]bool
 	// RefreshingDevices prevents concurrent refresh operations for the same device UDID
 	RefreshingDevices sync.Map
@@ -61,6 +63,9 @@ type installOperationKey struct {
 	IpaPath          string
 	Account          string
 	BundleIdentifier string
+	// CustomIdentifier is part of the key: the same IPA installed with and
+	// without it is two different apps, so both may be queued at once.
+	CustomIdentifier string
 	CustomName       string
 	RemoveExtensions bool
 	SourceKind       string
@@ -95,7 +100,10 @@ func new() *Task {
 
 func (t *Task) RunSchedule() error {
 	if t.c != nil {
-		t.Stop()
+		// Updating cron settings must not restart the install worker.
+		// That worker can still be in its initial 30-second usbmuxd wait.
+		<-t.c.Stop().Done()
+		t.c = nil
 	}
 
 	if _, err := cron.ParseStandard(app.Settings.Task.CrodTime); err != nil {
@@ -148,13 +156,20 @@ func (t *Task) Start() {
 		}
 	})
 
-	go t.runQueue()
+	// The installation queue belongs to the Task lifetime, not to the
+	// cron schedule. Repeated settings updates must never spawn new workers.
+	t.queueStartOnce.Do(func() { go t.runQueue() })
 }
 
+// Stop shuts down the Task. RunSchedule only replaces the cron schedule.
 func (t *Task) Stop() {
-	t.chExitQueue <- true
-	<-t.c.Stop().Done()
-	t.c = nil
+	// Closing is non-blocking even when runQueue is still waiting for
+	// usbmuxd, and the once guard makes repeated Stop calls safe.
+	t.queueStopOnce.Do(func() { close(t.chExitQueue) })
+	if t.c != nil {
+		<-t.c.Stop().Done()
+		t.c = nil
+	}
 }
 
 // removeStaleTempFiles removes the staged files abandoned in the upload
@@ -290,6 +305,7 @@ func installKey(v model.InstalledApp) installOperationKey {
 		IpaPath:          v.IpaPath,
 		Account:          v.Account,
 		BundleIdentifier: v.BundleIdentifier,
+		CustomIdentifier: v.CustomIdentifier,
 		CustomName:       v.CustomName,
 		RemoveExtensions: v.RemoveExtensions,
 		SourceKind:       v.Source.Kind,
@@ -581,6 +597,16 @@ func (t *Task) runInternal(v model.InstalledApp, refresh bool, installMgr *manag
 		return nil, fmt.Errorf("device not found for UDID: %s", v.UDID)
 	}
 
+	// A manual (Tailscale) device has no mDNS-provided tunnel port; resolve it
+	// before installing so the engine can reach the device over RSD.
+	if manager.ManualPortNeedsResolve(dev) {
+		installMgr.WriteLog("Resolving tunnel port for manual device...\n")
+	}
+	if err := manager.PrepareManualDevice(context.Background(), dev); err != nil {
+		installMgr.WriteLog(err.Error() + "\n")
+		return nil, err
+	}
+
 	err := installMgr.TryStart(context.Background(), manager.InstallOptions{
 		UDID:             v.UDID,
 		Account:          v.Account,
@@ -588,6 +614,7 @@ func (t *Task) runInternal(v model.InstalledApp, refresh bool, installMgr *manag
 		Port:             dev.Port,
 		IpaPath:          v.IpaPath,
 		CustomName:       v.CustomName,
+		CustomIdentifier: v.CustomIdentifier,
 		RemoveExtensions: v.RemoveExtensions,
 		RefreshMode:      refresh,
 	})

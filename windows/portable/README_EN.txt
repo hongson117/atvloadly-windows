@@ -1,6 +1,6 @@
 ATVLOADLY FOR WINDOWS (NATIVE BUILD, NO DOCKER/WSL NEEDED)
 ==========================================================
-Version: atvloadly v0.6.2-7-g0cb114d-win + plumesign 2.2.3-patch.8 (Windows x64)
+Version: atvloadly v0.8.0-1-win + plumesign 2.7.1-patch.5 (Windows x64)
 Requirements: Windows 10/11 64-bit, PC and Apple TV on the same LAN/Wi-Fi.
 
 1. FOLDER CONTENTS
@@ -25,7 +25,7 @@ Requirements: Windows 10/11 64-bit, PC and Apple TV on the same LAN/Wi-Fi.
   b) Right-click firewall-allow.bat > Run as administrator (once). If Windows shows a
      firewall prompt when running, choose "Allow" for Private networks.
      The PC's Wi-Fi/LAN network must be set to "Private" (Settings > Network > Properties).
-  c) Run start.bat. The first run downloads ~140MB of anisette libraries from Apple's servers.
+  c) Run start.bat. The first run tries to download ~140MB of optional anisette libraries from Apple.
   d) Open a browser: http://localhost:5533  (from another LAN machine: http://<PC-IP>:5533)
   e) To run in the background + autostart: run install-autostart.bat (after running start.bat once).
 
@@ -62,10 +62,11 @@ Requirements: Windows 10/11 64-bit, PC and Apple TV on the same LAN/Wi-Fi.
         https://apps.microsoft.com/detail/9np83lwlpz9k
       or iTunes for Windows: https://www.apple.com/itunes/download/win64
     (Apple does not allow redistributing these components, so they are not bundled.)
-  - The anisette libraries (libstoreservicescore.so/libCoreADI.so) belong to Apple and are not
-    bundled; the script downloads them directly from apps.mzstatic.com (same as the Docker image).
-    If the download fails, plumesign uses a remote anisette server (ani.sidestore.io); you can
-    retry from Settings > Update CoreADI in the UI.
+  - Anisette: plumesign 2.7.1 uses a remote anisette server (mac-ani.jkcoxson.com) by default,
+    which fixes the login error "Authentication SRP error -80045". Apple's local libraries
+    (libstoreservicescore.so/libCoreADI.so) are optional and not bundled; start.bat tries to
+    download them from apps.mzstatic.com, and a failed download is harmless. Retry from
+    Settings > Update CoreADI in the UI.
   - The "restart usbmuxd" button in the UI has no effect on Windows.
   - "Service status" (avahi-daemon) in the UI is empty on Windows - this is normal.
   - Antivirus/SmartScreen may warn because the exe is unsigned: choose "More info > Run anyway".

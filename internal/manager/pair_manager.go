@@ -2,9 +2,10 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/bitxeno/atvloadly/internal/app"
@@ -15,10 +16,13 @@ import (
 )
 
 type PairManager struct {
+	runMu   sync.Mutex
+	stateMu sync.Mutex
+
 	outputStdout *pairOutputWriter
 	outputStderr *pairOutputWriter
 
-	stdin io.WriteCloser
+	stdin *os.File
 
 	cancel context.CancelFunc
 	em     *event.Manager
@@ -35,25 +39,44 @@ func NewPairManager() *PairManager {
 }
 
 func (t *PairManager) Start(ctx context.Context, device model.Device) error {
+	if !t.runMu.TryLock() {
+		return errors.New("pairing already in progress")
+	}
+	defer t.runMu.Unlock()
+
 	// Set execute timeout to 1 minute.
 	timeout := time.Minute
 	ctx, cancel := context.WithCancel(ctx)
+	t.stateMu.Lock()
 	t.cancel = cancel
+	t.stateMu.Unlock()
+	defer func() {
+		t.stateMu.Lock()
+		t.cancel = nil
+		t.stateMu.Unlock()
+		cancel()
+	}()
 
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
 		log.Err(err).Msg("Error creating stdin pipe: ")
 		return err
 	}
+	t.stateMu.Lock()
 	t.stdin = stdinWriter
+	t.stateMu.Unlock()
 	defer func() {
-		_ = stdinReader.Close()
-		_ = t.stdin.Close()
+		// Drop the active pipe before closing it; a late PIN write may
+		// safely finish with a closed-pipe error.
+		t.stateMu.Lock()
 		t.stdin = nil
+		t.stateMu.Unlock()
+		_ = stdinWriter.Close()
+		_ = stdinReader.Close()
 	}()
 
 	port := fmt.Sprintf("%d", device.Port)
-	err = exec.CommandContext(ctx, "plumesign", "pair", "--ip", device.IP, "--port", port).
+	err = exec.CommandContext(ctx, "plumesign", pairCommandArgs(device, port)...).
 		WithTimeout(timeout).
 		WithDir(app.Config.Server.DataDir).
 		WithEnv(GetRunEnvs()).
@@ -71,9 +94,12 @@ func (t *PairManager) Start(ctx context.Context, device model.Device) error {
 }
 
 func (t *PairManager) Close() {
-	if t.cancel != nil {
-		t.cancel()
-		t.cancel = nil
+	t.stateMu.Lock()
+	cancel := t.cancel
+	t.cancel = nil
+	t.stateMu.Unlock()
+	if cancel != nil {
+		cancel()
 	}
 	if t.em != nil {
 		_ = t.em.CloseWait()
@@ -88,8 +114,12 @@ func (t *PairManager) OnOutput(fn func(string)) {
 }
 
 func (t *PairManager) Write(p []byte) {
-	if t.stdin != nil {
-		_, _ = t.stdin.Write(p)
+	t.stateMu.Lock()
+	writer := t.stdin
+	t.stateMu.Unlock()
+	// Do not hold stateMu during an OS-pipe write: the reader may block.
+	if writer != nil {
+		_, _ = writer.Write(p)
 	}
 }
 
@@ -99,6 +129,26 @@ func (t *PairManager) ErrorLog() string {
 
 func (t *PairManager) OutputLog() string {
 	return t.outputStdout.String()
+}
+
+// pairCommandArgs builds the `plumesign pair` arguments. A manually entered
+// IP carries --manual so the engine knows the address was not probed.
+func pairCommandArgs(device model.Device, port string) []string {
+	args := []string{"pair", "--ip", device.IP, "--port", port}
+	if device.Manual {
+		args = append(args, "--manual")
+	}
+	return args
+}
+
+// pairingCheckArgs builds the `plumesign check pairing` arguments used to
+// validate an imported pairing file. A manually entered IP carries --manual.
+func pairingCheckArgs(ip, port, file string, manual bool) []string {
+	args := []string{"check", "pairing", "--ip", ip, "--port", port, "-f", file}
+	if manual {
+		args = append(args, "--manual")
+	}
+	return args
 }
 
 type pairOutputWriter struct {
@@ -124,7 +174,7 @@ func (w *pairOutputWriter) String() string {
 	return string(w.data)
 }
 
-func ImportPairingFile(ip string, port string, data []byte) error {
+func ImportPairingFile(ip string, port string, manual bool, data []byte) error {
 	// Create a temporary file
 	tmpFile, err := os.CreateTemp("", "pairing-*.plist")
 	if err != nil {
@@ -151,7 +201,7 @@ func ImportPairingFile(ip string, port string, data []byte) error {
 	}
 
 	// Execute the check command
-	_, err = exec.NewCommand("plumesign", "check", "pairing", "--ip", ip, "--port", port, "-f", tmpFilePath).
+	_, err = exec.NewCommand("plumesign", pairingCheckArgs(ip, port, tmpFilePath, manual)...).
 		WithDir(app.Config.Server.DataDir).
 		WithEnv(GetRunEnvs()).
 		CombinedOutput()

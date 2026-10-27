@@ -15,7 +15,7 @@ import (
 
 	"github.com/iineva/CgbiPngFix/ipaPng"
 
-	"github.com/iineva/bom/pkg/asset"
+	"github.com/bitxeno/atvloadly/pkg/bom/pkg/asset"
 	"github.com/iineva/ipa-server/pkg/plist"
 	"github.com/iineva/ipa-server/pkg/seekbuf"
 )
@@ -133,7 +133,7 @@ func Parse(readerAt io.ReaderAt, size int64) (*IPA, error) {
 	for _, f := range iconFiles {
 		size, err := iconSize(f.Name)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		if size > maxSize {
 			maxSize = size

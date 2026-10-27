@@ -1,6 +1,6 @@
 ATVLOADLY CHO WINDOWS - BAN CAI DAT
 ===================================
-atvloadly v0.6.2-7-g0cb114d-win + plumesign 2.2.3-patch.8 (Windows x64)
+atvloadly v0.8.0-1-win + plumesign 2.7.1-patch.5 (Windows x64)
 Ban build Windows cong dong tu bitxeno/atvloadly (tac gia goc chi phat hanh ban Linux/Docker).
 
 SU DUNG
@@ -48,9 +48,10 @@ MICROSOFT DEFENDER / ANTIVIRUS
 LUU Y
 - Ket noi kieu cu (tvOS 16-, USB) can Apple Mobile Device Service: cai app
   "Apple Devices" tu Microsoft Store: https://apps.microsoft.com/detail/9np83lwlpz9k
-- Thu vien anisette (Apple) duoc tai tu apps.mzstatic.com va chay bang trinh nap ELF
-  tich hop trong plumesign. Neu tai/nap loi, plumesign dung anisette tu xa
-  (ani.sidestore.io). Thu lai: Settings > Update CoreADI trong atvloadly, hoac
+- Anisette: plumesign 2.7.1 mac dinh dung may chu anisette tu xa (mac-ani.jkcoxson.com).
+  Viec nay sua loi dang nhap Apple "Authentication SRP error -80045" cua ban cu.
+  Thu vien anisette cuc bo cua Apple (~140MB, apps.mzstatic.com) la TUY CHON, khong
+  con can de dang nhap. Neu van muon tai: Settings > Update CoreADI trong atvloadly, hoac
   powershell -ExecutionPolicy Bypass -File "<thu muc cai dat>\scripts\setup-anisette.ps1"
 - Da kiem tra tren Windows that: tim Apple TV, ghep doi, cai app, anisette deu hoat dong.
   Neu gap loi, xem %LOCALAPPDATA%\atvloadly\app.log.

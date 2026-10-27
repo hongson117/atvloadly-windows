@@ -1,32 +1,22 @@
 <template>
   <div class="xl:flex xl:flex-row xl:gap-x-12">
     <div class="xl:basis-3/12 min-w-0 flex gap-x-16 flex-col gap-y-8 mb-8 xl:mb-0">
-      <div v-show="pairableDevices.length > 0">
-        <h4 class="mb-2">{{ $t("home.heading.pairable_devices") }}</h4>
-        <div class="flex flex-col w-full border-opacity-50">
-          <div class="grid card atv-device-panel">
-            <a
-              class="atv-device-row flex flex-row gap-x-3 cursor-pointer"
-              v-for="item in pairableDevices"
-              v-bind:key="item.id"
-              @click="startPair(item)"
-            >
-              <div>
-                <div class="avatar">
-                  <div class="w-16 rounded">
-                    <IPhoneIcon v-if="isIPhone(item)" />
-                    <AppleTVIcon v-else />
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex flex-col justify-top">
-                <h4>{{ item.name }} ({{ truncateIP(item.ip) }})</h4>
-                <p>{{ formatDeviceStatus(item) }}</p>
-              </div>
-            </a>
+      <div class="grid card atv-device-panel">
+        <router-link
+          :to="{ name: 'add-device' }"
+          class="atv-device-row flex flex-row gap-x-3 cursor-pointer"
+        >
+          <div class="atv-add-device-icon">
+            <PlusIcon />
           </div>
-        </div>
+          <div class="atv-add-device-text">
+            <h4>{{ $t("home.sidebar.add_device.title") }}</h4>
+            <p>{{ $t("home.sidebar.add_device.subtitle") }}</p>
+          </div>
+          <span class="atv-add-device-chevron">
+            <ChevronRightIcon />
+          </span>
+        </router-link>
       </div>
 
       <div>
@@ -40,10 +30,13 @@
               class="atv-device-row flex flex-row gap-x-3 cursor-pointer"
               v-for="item in pairedDevices"
               v-bind:key="item.id"
+              :class="{ 'atv-device-row--manual': item.manual }"
               @click="installIpa(item)"
+              @mouseleave="forgetConfirmId = null"
             >
               <div>
-                <div class="avatar online">
+                <div class="avatar" :class="{ online: !item.manual }">
+                  <span v-if="item.manual" class="atv-ip-badge">{{ $t("home.sidebar.device_status.ip_badge") }}</span>
                   <div class="w-16 rounded">
                     <IPhoneIcon v-if="item.name.toLowerCase().includes('iphone')" />
                     <AppleTVIcon v-else />
@@ -51,10 +44,28 @@
                 </div>
               </div>
 
-              <div class="flex flex-col justify-top">
+              <div class="flex flex-col justify-top flex-1 min-w-0">
                 <h4>{{ item.name }} ({{ truncateIP(item.ip) }})</h4>
-                <p>{{ formatDeviceStatus(item) }}</p>
+                <p class="atv-device-subline">
+                  <span>{{ formatDeviceStatus(item) }}</span>
+                </p>
               </div>
+
+              <button
+                v-if="item.manual"
+                type="button"
+                class="atv-device-forget"
+                :class="{ 'atv-device-forget--armed': forgetConfirmId === item.id }"
+                :title="forgetConfirmId === item.id ? $t('home.sidebar.device_status.forget_confirm') : $t('home.sidebar.device_status.forget')"
+                :aria-label="$t('home.sidebar.device_status.forget')"
+                @click.stop.prevent="forgetDevice(item)"
+              >
+                <span class="atv-device-forget-icon"><TrashIcon /></span>
+                <span
+                  class="atv-device-forget-label"
+                  v-if="forgetConfirmId === item.id"
+                >{{ $t("home.sidebar.device_status.forget_confirm") }}</span>
+              </button>
             </a>
           </div>
 
@@ -73,7 +84,7 @@
         </div>
       </div>
 
-      <div>
+      <div class="atv-service-status">
         <h4 class="mb-2">{{ $t("home.heading.service_status") }}</h4>
         <div class="flex flex-col w-full border-opacity-50">
           <div
@@ -195,6 +206,25 @@
                   <div class="flex flex-col justify-start prose atv-app-text">
                     <div>{{ appName(item) }}</div>
                     <div class="stat-title text-sm">{{ item.version }}</div>
+                    <!-- The same IPA installed with and without a custom bundle
+                         identifier is two different apps on the device: show the
+                         identifier so the two rows can be told apart. -->
+                    <div
+                      v-if="item.custom_identifier"
+                      class="stat-title text-xs truncate"
+                      :title="item.custom_identifier"
+                    >
+                      {{ item.custom_identifier }}
+                    </div>
+                    <div class="stat-title text-sm">
+                      <a
+                        class="link link-hover stat-title font-normal"
+                        :href="logUrl(item)"
+                        :title="$t('home.table.tips.view_log')"
+                        target="_blank"
+                        >{{ formatRefreshDate(item) }}</a
+                      >
+                    </div>
                     <div class="flex flex-wrap items-center gap-1 atv-source-line">
                       <span class="badge badge-info badge-sm max-w-full" v-if="item.source.latest_build_id">
                         <span class="truncate">{{
@@ -217,15 +247,6 @@
                           $t("home.source.auto")
                         }}</span>
                       </button>
-                    </div>
-                    <div class="stat-title text-sm">
-                      <a
-                        class="link link-hover stat-title font-normal"
-                        :href="logUrl(item)"
-                        :title="$t('home.table.tips.view_log')"
-                        target="_blank"
-                        >{{ formatRefreshDate(item) }}</a
-                      >
                     </div>
                   </div>
                 </div>
@@ -435,14 +456,11 @@ export default {
       // ID of the app armed for deletion in the row dropdown menu. Clicking
       // delete once arms it, clicking again confirms.
       confirmDeleteId: null,
+      // ID of a manual device armed for "forget" confirmation.
+      forgetConfirmId: null,
     };
   },
   computed: {
-    pairableDevices: function () {
-      return this.devices.filter(function (item) {
-        return item.status == "pairable";
-      });
-    },
     pairedDevices: function () {
       return this.devices.filter(function (item) {
         return item.status == "paired";
@@ -721,9 +739,6 @@ export default {
           this.checkingUpdates = false;
         });
     },
-    startPair(device) {
-      this.$router.push({ name: "pair", params: { id: device.id } });
-    },
     installIpa(device) {
       this.$router.push({ name: "install", params: { id: device.id } });
     },
@@ -789,7 +804,10 @@ export default {
       return connection;
     },
     formatDeviceStatus(item) {
-      const status = this.formatStatus(item.status);
+      // Manual (pairing-file) devices are "added", not discovered as connected.
+      const status = item.manual
+        ? this.$t("home.sidebar.device_status.added")
+        : this.formatStatus(item.status);
       const connection = this.formatConnection(item.connection);
 
       if (!connection) {
@@ -798,11 +816,20 @@ export default {
 
       return `${status} · ${connection}`;
     },
-    isIPhone(item) {
-      if (item.device_class) {
-        return item.device_class.toLowerCase() == "iphone" || item.device_class.toLowerCase() == "ipad";
+    async forgetDevice(item) {
+      // First click arms the confirmation, second click deletes.
+      if (this.forgetConfirmId !== item.id) {
+        this.forgetConfirmId = item.id;
+        return;
       }
-      return item.name && (item.name.toLowerCase().includes("iphone") || item.name.toLowerCase().includes("ipad"));
+      this.forgetConfirmId = null;
+      try {
+        await api.deleteManualDevice(item.id);
+        toast.success(this.$t("home.sidebar.device_status.forget_done"));
+        this.fetchData();
+      } catch (error) {
+        console.error(error);
+      }
     },
     isIOSApp(item) {
       if (!item || !item.device_class) return false;
@@ -932,6 +959,9 @@ import GithubIcon from "@/assets/icons/github.svg";
 import LinkIcon from "@/assets/icons/link.svg";
 import RefreshIcon from "@/assets/icons/refresh.svg";
 import DownloadIcon from "@/assets/icons/download.svg";
+import PlusIcon from "@/assets/icons/plus.svg";
+import ChevronRightIcon from "@/assets/icons/chevron-right.svg";
+import TrashIcon from "@/assets/icons/trash.svg";
 </script>
 
   
@@ -939,6 +969,173 @@ import DownloadIcon from "@/assets/icons/download.svg";
 .headline {
   @apply prose mb-2;
 }
+
+/* Persistent entry that opens the add-device page. It reuses the device
+   panel/row so its hover tint is inset by the panel padding, exactly like the
+   connected-device rows. */
+.atv-add-device-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 9999px;
+  background: var(--atv-accent-soft);
+  color: var(--atv-accent);
+  flex-shrink: 0;
+  transition: background-color .15s ease;
+}
+
+/* The row hover tint is almost the same shade as the badge, so the badge
+   would blend into the background on hover. Deepen it to keep the icon
+   readable while the row is highlighted. */
+.atv-device-row:hover .atv-add-device-icon {
+  background: var(--atv-accent-soft-hover);
+}
+
+.atv-add-device-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.atv-add-device-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.atv-add-device-text h4 {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  font-weight: 700;
+  color: var(--atv-ink);
+}
+
+.atv-add-device-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--atv-muted);
+  line-height: 1.35;
+}
+
+.atv-add-device-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--atv-muted);
+  flex-shrink: 0;
+}
+
+/* Manual (pairing-file) device: "IP" badge on the avatar's top-right corner
+   instead of the online dot. It sits on .avatar (not .avatar > div, which
+   daisyUI clips with overflow:hidden) so it is never cut off. */
+.atv-ip-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 11;
+  padding: 2px 5px;
+  border-radius: 7px;
+  background: var(--atv-accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 0 2px var(--atv-surface);
+}
+
+/* "Forget" action for a manual device: a trash icon that floats over the far
+   right edge of the row without taking any horizontal space from the title
+   (absolute, out of flow). Hidden at rest on desktop and revealed on row hover
+   or keyboard focus, where it grows a left-to-right fade panel that covers the
+   title text beneath it. First click arms the confirmation (the icon turns red
+   and shows the confirm label), the second click deletes. Always visible on
+   phones, which have no hover. */
+.atv-device-subline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Positioning context for the floating forget panel; overflow keeps the
+   panel's fill inside the row's rounded corners. */
+.atv-device-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.atv-device-forget {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 0 16px 0 52px;
+  border: 0;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--atv-surface-hover) 46%
+  );
+  color: var(--atv-muted);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, color 140ms ease;
+}
+
+.atv-device-forget-icon {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+}
+
+.atv-device-forget-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.atv-device-forget-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--atv-danger);
+}
+
+.atv-device-row--manual:hover .atv-device-forget,
+.atv-device-forget:focus-visible,
+.atv-device-forget--armed {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.atv-device-forget:hover,
+.atv-device-forget--armed {
+  color: var(--atv-danger);
+}
+
+/* Touch devices (phones and iPads) have no hover, so the forget icon is
+   always shown. With no hovered row to blend into, the gradient fades to the
+   card's own background instead of the hover tint, and the panel is kept
+   compact so it covers as little of the title as possible. */
+@media (hover: none) {
+  .atv-device-forget {
+    padding: 0 12px 0 16px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      var(--atv-surface) 46%
+    );
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .empty {
   background-image: repeating-linear-gradient(
     45deg,
@@ -997,6 +1194,9 @@ import DownloadIcon from "@/assets/icons/download.svg";
 .atv-indicator-tip::before {
   white-space: pre-line;
   text-align: left;
+  /* Source errors carry unbreakable URLs: break them so the text stays
+     inside the bubble instead of running over it and the table behind. */
+  overflow-wrap: anywhere;
 }
 
 .atv-source-line .badge-info {
